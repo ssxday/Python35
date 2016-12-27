@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jd rank="2">
+    www.jd.com
+    <book>
+        <name publisher="ICBC" page="143" author="helen" class="biopraphy">
+            three days to see
+        </name>
+        <name publisher="o'raily" page="1035" author="Mark" class="programming">
+            learning Python
+        </name>
+    </book>
+    <_3C>
+        <computer>
+            <lenovo>
+                <name>
+                    E60
+                    <os>windows10</os>
+                    <screen>14</screen>
+                    <camera>500</camera>
+                    <size v="380 300 18"/>
+                </name>
+                <name>
+                    Y40
+                    <os>windows10</os>
+                    <screen>14</screen>
+                    <camera>500</camera>
+                    <size v="510 380 18"/>
+                </name>
+            </lenovo>
+            <acer></acer>
+            <ibm></ibm>
+        </computer>
+        <cellphone>
+            <huawei base="sz">
+                <name>
+                    P9
+                    <os>Android</os>
+                    <screen>oled</screen>
+                    <camera>1200</camera>
+                    <size v="120 12 8"/>
+                </name>
+                <name>
+                    mate8
+                    <os>android</os>
+                    <screen>chempanzee</screen>
+                    <camera>1000</camera>
+                    <size v="116 20 9"/>
+                </name>
+            </huawei>
+            <mi base="bj">
+                <name>
+                    mi note 2 plus
+                    <os>MIUI8</os>
+                    <screen>curve</screen>
+                    <camera>1600</camera>
+                    <size v="130 22 7"/>
+                </name>
+            </mi>
+            <apple base="usa">
+                <name>
+                    apple 6 plus
+                    <os>iOS10</os>
+                    <screen>retina</screen>
+                    <camera>1200</camera>
+                    <size v="127 24 7"/>
+                </name>
+            </apple>
+            <samsung base="kr">
+                <name>
+                    galaxy note 7
+                    <os>Android</os>
+                    <screen>curve</screen>
+                    <camera>1200</camera>
+                    <size v="119 23 7"/>
+                </name>
+                <name>
+                    galaxy Edge 2
+                    <os>Android</os>
+                    <screen>curve</screen>
+                    <camera>1200</camera>
+                    <size v="126 24 7"/>
+                </name>
+            </samsung>
+        </cellphone>
+    </_3C>
+    <homeuse >
+        <pillow>
+            <![CDATA[
+def PIL():
+                        if a<b:
+                        print hello>%4
+            ]]>
+        </pillow>
+        <sheets>
+            qingdao &gt; shanghai
+        </sheets>
+        <cups></cups>
+    </homeuse>
+    admin@cnshops.com
+    4001234567
+</jd>
