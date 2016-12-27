@@ -9,7 +9,7 @@ print('DOMImplementation接口'.center(50, '*'))
 impl = xmini.DOMImplementation()
 print('DOMImplementation:', impl)
 print(impl.hasFeature('events', '2.0'))
-print('查看Implementation的特性：',impl._features)
+print('查看Implementation的特性：', impl._features)
 print(impl.getInterface('xml'))  # 返回DOMImplementation接口对象本身：self
 doctype = impl.createDocumentType('good', 'unknown', 'fuck')
 print('doctype:', doctype)
@@ -34,38 +34,46 @@ print('DOM的根节点的父节点还是DOM', docroot.parentNode)
 # 创建节点即实例化节点Node类，是由DOM(Document)提供的方法来创建的
 # 当一个节点被创建时，他就是一个孤零零的节点对象，并不与DOM有什么关系
 print('\n不用documentElement根节点，直接用DOM创建元素节点')
-elem = docfromstr.createElement('sell')
+elem = docfromstr.createElement('car')
 print('创建元素节点elem：', elem)  # <DOM Element: sell at 0x10166f470>
 print(type(elem.toxml()))  # 字面是toxml，实际是把对象变成xml字符串string
 print('根节点的父节点是？', elem.parentNode)  # 返回None，用parentNode回不到自己的DOM
 print('DOM有子节点吗？', docfromstr.hasChildNodes())
 print('DOM的子节点列表？', docfromstr.childNodes)  # 根元素是DOM的0号子节点
-
-# docfromstr.createComment('wocaonima')
-# print(docfromstr.toxml())
 print()
 print('@' * 25)
+
 # 创建文本节点
-text = docfromstr.createTextNode('VeryGood')
+text = docfromstr.createTextNode('A fancy car')
 print('文本节点', text)  # <DOM Text node "'VeryGood'">
-# print(text.toxml())
+print(text.toxml())
+
 # 创建属性节点
 attr = docfromstr.createAttribute('madein')
 print('属性节点：', attr)  # <xml.dom.minidom.Attr object at 0x101663570>
 print(attr.nodeName)
 
-# 下面用DOM的根节点新建各类节点
+# 注释节点
+comment1 = docfromstr.createComment('i want to buy this car')
+print(comment1)
+print(comment1.nodeValue)  # 对比
+print(comment1.toxml())  # 对比
+
+# 把创建的各类型节点按层次【挂】上去
 print('把elem挂到根节点下：', docroot.appendChild(elem))
-print('打印DOM：',docfromstr.toxml())
+elem.appendChild(text)
+# elem.appendChild(attr)
+elem.appendChild(comment1)
+print('打印DOM：', docfromstr.toxml())
 
 # Node接口 被Document继承
-# 节点类型 nodeType
-print('节点类型nodeType：',attr.nodeType)  # 2
-print('节点类型nodeType：',docroot.nodeType)  # 1
-print('节点类型nodeType：',text.nodeType)  # 3
-print('节点类型nodeType：',docfromstr.nodeType)  # 9 DOM也算一个大节点
-# 获取DOM根节点 -> DOM对象的documentElement属性
 print('Node接口'.center(50, '*'))
+# 节点类型 nodeType
+print('节点类型nodeType：', attr.nodeType)  # 2
+print('节点类型nodeType：', docroot.nodeType)  # 1
+print('节点类型nodeType：', text.nodeType)  # 3
+print('节点类型nodeType：', docfromstr.nodeType)  # 9 DOM也算一个大节点
+# 获取DOM根节点 -> DOM对象的documentElement属性
 root = mydom.documentElement  # 根节点获取
 print(root)  # 根节点
 print(root.childNodes)
