@@ -33,37 +33,53 @@ print('DOM的根节点的父节点还是DOM', docroot.parentNode)
 # 创建元素节点
 # 创建节点即实例化节点Node类，是由DOM(Document)提供的方法来创建的
 # 当一个节点被创建时，他就是一个孤零零的节点对象，并不与DOM有什么关系
-print('\n不用documentElement根节点，直接用DOM创建元素节点')
-elem = docfromstr.createElement('car')
-print('创建元素节点elem：', elem)  # <DOM Element: sell at 0x10166f470>
-print(type(elem.toxml()))  # 字面是toxml，实际是把对象变成xml字符串string
-print('根节点的父节点是？', elem.parentNode)  # 返回None，用parentNode回不到自己的DOM
+print('\n创建元素节点')
+elem_car = docfromstr.createElement('car')
+elem_plane = docfromstr.createElement('plane')
+print('元素节点elem：', elem_car)  # <DOM Element: sell at 0x10166f470>
+print(type(elem_car.toxml()))  # 字面是toxml，实际是把对象变成xml字符串string
+print('根节点的父节点是？', elem_car.parentNode)  # 返回None，用parentNode回不到自己的DOM
 print('DOM有子节点吗？', docfromstr.hasChildNodes())
 print('DOM的子节点列表？', docfromstr.childNodes)  # 根元素是DOM的0号子节点
+# 给元素节点添加属性，方法一
+elem_car.setAttribute('Vol','3.0T')
+print(elem_car.attributes)
+
 print()
-print('@' * 25)
+# print('@' * 25)
 
 # 创建文本节点
 text = docfromstr.createTextNode('A fancy car')
 print('文本节点', text)  # <DOM Text node "'VeryGood'">
-print(text.toxml())
+print('文本节点的类型值', text.nodeType)  # 3
+print('文本节点的节点名称', text.nodeName)  # #text
+print('文本节点的值', text.nodeValue)  # A fancy car
+print('在xml文档中的表现形式',text.toxml())
 
 # 创建属性节点
-attr = docfromstr.createAttribute('madein')
+print()
+attr = docfromstr.createAttribute('MadeIn')  # 生成属性节点时只定义了属性名
 print('属性节点：', attr)  # <xml.dom.minidom.Attr object at 0x101663570>
-print(attr.nodeName)
+attr.value = 'China'  # 设置属性节点的属性值
+print('测试是否是同一个',attr.value is attr.nodeValue)
 
 # 注释节点
 comment1 = docfromstr.createComment('i want to buy this car')
-print(comment1)
+print('\n注释节点：',comment1)
 print(comment1.nodeValue)  # 对比
 print(comment1.toxml())  # 对比
 
 # 把创建的各类型节点按层次【挂】上去
-print('把elem挂到根节点下：', docroot.appendChild(elem))
-elem.appendChild(text)
-# elem.appendChild(attr)
-elem.appendChild(comment1)
+print('把car挂到根节点下：', docroot.appendChild(elem_car))
+print('把plane挂到根节点下：', docroot.appendChild(elem_plane))
+elem_car.appendChild(text)
+elem_car.appendChild(comment1)
+# 给元素节点添加属性，方法二。其他的节点都可以用appendChild()
+# 唯独属性节点要用setAttributeNode
+# 元素节点的属性并不是属性节点，而是NamedNodeMap对象，
+# 属性节点只是作为参数传入元素对象的setAttributeNode()方法
+elem_car.setAttributeNode(attr)
+
 print('打印DOM：', docfromstr.toxml())
 
 # Node接口 被Document继承
@@ -91,4 +107,4 @@ print('Comment接口'.center(50, '*'))
 
 #
 
-# help(xmini.Node.appendChild)
+# help(xmini.NamedNodeMap)
