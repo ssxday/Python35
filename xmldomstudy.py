@@ -26,8 +26,7 @@ print('用parsestring函数生成：', docfromstr)  # Document object
 # DOM生成的时候，其根节点已然诞生，就是documentElement
 docroot = docfromstr.documentElement
 print('DOM的根节点documentElement', docroot)
-print('DOM的子节点是否等于DOM的根节点:',  # 答案：True
-      docroot == docfromstr.childNodes[0])
+print('DOM的子节点是否等于DOM的根节点:',docroot == docfromstr.childNodes[0])  # 答案：True
 print('DOM的根节点的父节点还是DOM', docroot.parentNode)
 
 # 创建元素节点
@@ -44,9 +43,8 @@ print('DOM的子节点列表？', docfromstr.childNodes)  # 根元素是DOM的0�
 # 给元素节点添加属性，方法一
 elem_car.setAttribute('Vol','3.0T')
 print(elem_car.attributes)
-
+print(elem_car.tagName is elem_car.nodeName)
 print()
-# print('@' * 25)
 
 # 创建文本节点
 text = docfromstr.createTextNode('A fancy car')
@@ -82,7 +80,7 @@ elem_car.setAttributeNode(attr)
 
 print('打印DOM：', docfromstr.toxml())
 
-# Node接口 被Document继承
+# Node接口 各类型节点都继承Node类
 print('Node接口'.center(50, '*'))
 # 节点类型 nodeType
 print('节点类型nodeType：', attr.nodeType)  # 2
@@ -94,17 +92,29 @@ root = mydom.documentElement  # 根节点获取
 print(root)  # 根节点
 print(root.childNodes)
 
-# Element接口
-print('Element接口'.center(50, '*'))
-# help(xmini.Document)
+# 对xml文档通过DOM遍历
+print('对xml文档通过DOM进行遍历'.center(50, '*'))
+# 封装一个函数
+def traversal(node):
+    if node.hasChildNodes():
+        for child in node.childNodes:
+            print(child)
+            traversal(child)
+    else:
+        return
 
-# Text接口
-print('Text接口'.center(50, '*'))
+# traversal(mydom)
+print('@' * 25)
+# print(mydom.toxml())
 
-# Comment接口
-print('Comment接口'.center(50, '*'))
+#
+print(''.center(50, '*'))
+# mydom.getElementsByTagName()
+#
+print(''.center(50, '*'))
 
 
 #
 
-# help(xmini.NamedNodeMap)
+# help(xmini.Element)
+
