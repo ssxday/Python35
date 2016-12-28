@@ -35,6 +35,7 @@ print('DOM的根节点的父节点还是DOM', docroot.parentNode)
 print('\n创建元素节点')
 elem_car = docfromstr.createElement('car')
 elem_plane = docfromstr.createElement('plane')
+elem_ship = docfromstr.createElement('ship')
 print('元素节点elem：', elem_car)  # <DOM Element: sell at 0x10166f470>
 print(type(elem_car.toxml()))  # 字面是toxml，实际是把对象变成xml字符串string
 print('根节点的父节点是？', elem_car.parentNode)  # 返回None，用parentNode回不到自己的DOM
@@ -42,7 +43,7 @@ print('DOM有子节点吗？', docfromstr.hasChildNodes())
 print('DOM的子节点列表？', docfromstr.childNodes)  # 根元素是DOM的0号子节点
 # 给元素节点添加属性，方法一
 elem_car.setAttribute('Vol','3.0T')
-print(elem_car.attributes)
+print(elem_car.attributes.items())  #
 print(elem_car.tagName is elem_car.nodeName)
 print()
 
@@ -91,6 +92,10 @@ print('节点类型nodeType：', docfromstr.nodeType)  # 9 DOM也算一个大节
 root = mydom.documentElement  # 根节点获取
 print(root)  # 根节点
 print(root.childNodes)
+# 节点的替换
+print('节点替换：')
+print('进行了替换：',docroot.replaceChild(elem_ship,elem_plane))
+print(docfromstr.toxml())
 
 # 对xml文档通过DOM遍历
 print('对xml文档通过DOM进行遍历'.center(50, '*'))
@@ -105,7 +110,10 @@ def traversal(node):
 
 # traversal(mydom)
 print('@' * 25)
-# print(mydom.toxml())
+nametags = root.getElementsByTagName('name')
+print(nametags)
+for tag in nametags:
+    pass
 
 #
 print(''.center(50, '*'))
