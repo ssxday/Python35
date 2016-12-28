@@ -1,7 +1,10 @@
 # -*- coding:utf-8 -*-
-import random
+import random, sys
+o = sys.stdout
+sys.stdout = open(r'/Library/Server/Web/Data/Sites/Default/code/browser.html', 'w')
 
 print("<title>蜗牛打法</title>")
+print("<meta charset='uft-8' />")
 
 
 # 连赢时按照斐波那契数列押注，一旦输了winning归零
@@ -167,7 +170,7 @@ class Casino:
             self.wining = 0
             self.secured(self.wining)
 
-        self.note += '%d %s wining=%d' % \
+        self.note += '%d %s wining=%s' % \
                      (self.chipsInHand, arr[self.lastresult], ("+%d" % self.wining if self.wining >= 0 else self.wining))
         self.notexe += "&nbsp;"
 
@@ -198,13 +201,12 @@ class Casino:
 
     def secured(self, v):
         # from php
-        # static
-        # temp_wining
-        global temp_wining
-        if temp_wining >= 2 and v <= 0:
+        # static temp_wining
+
+        if Casino.temp_wining >= 2 and v <= 0:
             # 执行记录secure的动作
             self.secure = self.chipsInHand
-        temp_wining = v
+        Casino.temp_wining = v
         return v
 
     def tongji(self):
