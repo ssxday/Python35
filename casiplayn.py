@@ -6,6 +6,11 @@ print("蜗牛打法")
 # 搏完了之后winning要归位的（在bet()上提现搏完了）
 # 加入心理承受的标杆函数
 # wining一旦从正数变成0或负数，则记录本场cih为secure
+# 思路整理：
+# 1、把输出信息分段，单独控制；
+# 2、把play拆成playonce和playn；
+# 3、bet()的策略封装到playn的循环中，playonce撤掉循环
+# 4、在playn中操作内部变量，最终调用bet()把内部变量传到对象属性#
 
 
 class Casino:
@@ -29,7 +34,7 @@ class Casino:
 
     # 通知内容
     note = ""
-    notexe = ""
+    what_i_did = ""
     note_secure = ""
 
     # 构造方法
@@ -44,9 +49,15 @@ class Casino:
 
         # 启动play()
         self.playn(ttl)
-        # self.playonce()
 
     def playn(self, n):
+        """
+        需要的内部变量有cih,howmuch,loop,secure
+        beton是由outcome, wining。。。决定
+        howmuch由chipsInHand,secure,wining。。。决定
+        :param n:
+        :return:
+        """
         # 开始循环play
         for i in range(n):
             if self.chipsInHand <= self.howmuch:
@@ -55,55 +66,46 @@ class Casino:
                 self.looptimes += 1  # 循环次数 + 1
 
             # 第一步，bet
-            self.bet()
+            if self.chipsInHand < self.secure:  # 如果跌破secure安全线
+                if self.outcome == 0:  # 如果上次是豹子 (初始值是-1)
+                    self.beton = 2  # 这次就押大
+                else:  # 否则上把结果是啥，那么这把就押啥
+                    self.beton = self.outcome
+
+                # 翻2.2倍，即3倍
+                self.howmuch *= 2.5  # 不严谨，应确保从1开始，因此要重新写个函数
+                # self.psych()  # 总是跟在howmuch后面
+                self.what_i_did = "\t押%s%d单位\t启动secure=%d" % (self.arr_beton[self.beton], self.howmuch, self.secure)
+            else:  # 还在secure安全线以上
+                if self.wining == 0:  # 如果是首次
+                    self.beton = 2
+                    self.howmuch = 1
+                    self.psych()  # 总是跟在howmuch后面
+                else:  # 不是开局
+                    if self.outcome == 0:  # 如果上把出现了豹子
+                        self.beton = 2  # 出现豹子是一定输的，这把就押大
+                    # self.howmuch = 1
+                    else:
+                        self.beton = self.outcome
+                    self.howmuch = self.fibo(self.wining)
+                    # self.psych()  # 总是跟在howmuch后面
+                self.what_i_did = "\t押%s%d单位" % (self.arr_beton[self.beton], self.howmuch)
+
             # 第二步，摇骰子
-            self.diceset()  # 执行摇色子，并记录这次出的大小结果
+            self.outcome = self.diceset()  # 执行摇色子，并记录这次出的大小结果
             # 第三步，判断
             self.deal()
             # 第四步，打印结果出来
             self.notes()
 
-    def playonce(self):
-        # 第一步，bet
-        self.bet()
-        # 第二步，摇骰子
-        self.diceset()  # 执行摇色子，并记录这次出的大小结果
-        # 第三步，判断
-        self.deal()
-        # 第四步，打印结果出来
-        # self.notes()
-
     # 第一步bet
     # 自动掉头
-    # 现在没有解决的是，
     def bet(self):
-        if self.chipsInHand < self.secure:  # 如果跌破secure安全线
-            if self.outcome == 0:  # 如果上次是豹子
-                self.beton = 2  # 这次就押大
-            else:  # 否则上把结果是啥，那么这把就押啥
-                self.beton = self.outcome
-
-            # 翻2.2倍，即3倍
-            self.howmuch *= 2.5  # 不严谨，应确保从1开始，因此要重新写个函数
-            self.psych()  # 总是跟在howmuch后面
-            self.notexe = "\t押%s%d单位\t启动secure=%d" % (self.arr_beton[self.beton], self.howmuch, self.secure)
-        else:  # 还在secure安全线以上
-            if self.wining == 0:  # 如果没有连赢或连输(确定是首次)
-                self.beton = 2
-                self.howmuch = 1
-                self.psych()  # 总是跟在howmuch后面
-            else:
-                if self.outcome == 0:
-                    self.beton = 2  # 上把出现了豹子的情况，出现豹子是一定输的，这把就押大
-                # self.howmuch = 1
-                else:
-                    self.beton = self.outcome
-                self.howmuch = self.fibo(self.wining)
-                self.psych()  # 总是跟在howmuch后面
-            self.notexe = "\t押%s%d单位" % (self.arr_beton[self.beton], self.howmuch)
+        pass
 
     # 第二步摇骰子
     def diceset(self):
+        outcome = None
         dice = [1, 2, 3, 4, 5, 6]
         dice1 = random.choice(dice)
         dice2 = random.choice(dice)
@@ -111,27 +113,29 @@ class Casino:
 
         self.note = "%05d |%d %d %d| " % (self.looptimes, dice1, dice2, dice3)
         setsum = dice1 + dice2 + dice3
+
         if dice1 == dice2 and dice2 == dice3:
             self.num_baozi += 1
-            self.outcome = 0
+            outcome = 0
             self.note += "T |"
 
         elif 4 <= setsum <= 10:
             self.num_small += 1
-            self.outcome = 1
+            outcome = 1
             self.note += "S |"
 
         elif 11 <= setsum <= 17:
             self.num_big += 1
-            self.outcome = 2
+            outcome = 2
             self.note += "B |"
+        return outcome
 
     # 第三步判断
     def deal(self):
         arr = {True: "WIN!", False: "LOSE"}
         if self.beton == self.outcome:
             # Win
-            self.chipsInHand = self.chipsInHand + self.howmuch
+            self.chipsInHand += self.howmuch
             # 判断连赢次数
             if self.lastresult:
                 self.wining += 1
@@ -151,7 +155,7 @@ class Casino:
             self.bingo += 1
         else:
             # lose
-            self.chipsInHand = self.chipsInHand - self.howmuch  # lose
+            self.chipsInHand -= self.howmuch  # lose
             if self.lastresult:
                 self.wining = -1
                 # self.secure = self.chipsInHand # 本次输了，上次赢了，secure加码
@@ -166,7 +170,7 @@ class Casino:
 
         # 连赢次数归位
         if self.wining >= 8:
-            self.wining = 0
+            self.wining = 1
             self.secured(self.wining)
 
         self.note += '%d\t%s\twining=%s' % \
@@ -176,7 +180,7 @@ class Casino:
 
     def notes(self):
         if self.echo:
-            print(self.note + self.notexe)
+            print(self.note + self.what_i_did)
 
     def fibo(self, n):
         if n <= 1:
