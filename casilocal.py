@@ -6,6 +6,11 @@ print("蜗牛打法")
 # 搏完了之后winning要归位的（在bet()上提现搏完了）
 # 加入心理承受的标杆函数
 # wining一旦从正数变成0或负数，则记录本场cih为secure
+# 思路整理：
+# 1、把输出信息分段，单独控制；
+# 2、把play拆成playonce和playn；
+# 3、bet()的策略封装到playn的循环中，playonce撤掉循环
+# #
 
 
 class Casino:
