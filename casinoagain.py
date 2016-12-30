@@ -1,22 +1,18 @@
 # -*- coding:utf-8 -*-
 import random
+
 print("重新规划")
-# 连赢时按照斐波那契数列押注，一旦输了winning归零
-# winning从零开始时，一旦输了就用2倍反复押，直到回到上一轮winning结束的那个hook,
-# 搏完了之后winning要归位的（在bet()上提现搏完了）
-# 加入心理承受的标杆函数
-# wining一旦从正数变成0或负数，则记录本场cih为secure
+
 # 思路整理：
 # 1、把输出信息分段，单独控制；
-# 2、把play拆成playonce和playn；
-# 3、bet()的策略封装到playn的循环中，playonce撤掉循环
-# 4、在playn中操作内部变量，最终调用bet()把内部变量传到对象属性#
+# 2、本例是玩一轮的情况
+#
 
 
 class Dices:
     """
     用法：
-    1、Dices.outcome -> 得到一组骰子，直到调用shake()否则outcome不会变化
+    1、Dices.secret -> 得到一组骰子，直到调用shake()否则outcome不会变化
     2、shake() -> 返回一组新骰子组合
     3、counter() -> tuple(Triple, Small, Big)
     """
@@ -58,18 +54,71 @@ class Dices:
 
 
 class Player:
-    """"""
+    """
+    # Player的属性如下：
+    chipsInHand
+    secure
+    beton
+    howmuch
+    # Player的方法如下：
+    think()
+    guess()
+    """
 
     def __init__(self, cih=500):
-        self.chipInHand = cih
+        self.chipsInHand = cih  # 手中筹码
+        self.secure = cih  # 警戒值
+        self.beton = self.guess()
+        self.howmuch = self.think()
 
-    def guess(self, beton, howmuch):
+    def guess(self, beton=2):
+        # 尝试：guess负责beton
         return beton
 
+    def think(self,howmuch=1):
+        # 尝试：think负责howmuch
+        """
+        1、考虑安全线
+        2、考虑是不是第一次下注
+        3、判断上一轮dice是否是豹子0
+        4、
+        :return:
+        """
+        if self.chipsInHand < self.secure:
+            pass
+        else:
+            pass
+            # 判断上次是不是豹子
+        return howmuch
 
-class Dealer:
+
+class Dealer:  # 有可能本类才是各类的核心
     """
+    # Dealer属性如下：
+    cover -> int 骰子有结果了，但是放在罩子里不让人知道
+    lastresult -> bool 上一轮的输赢
+    # Dealer方法如下：
     """
+
+    def __init__(self):
+        self.dice = Dices()  # 实例化骰盅
+        self.player = Player()  # 实例化玩家
+        self.outcome = 'unknown'
+        self.cover = self.dice.outcome  # 一组骰子摇好了,但是还没人知道
+        self.lastresult = False
+
+    def uncover(self):
+        self.outcome = self.cover  # 结果揭晓
+
+    def deal(self):
+        if self.outcome == self.player.beton:
+            # Win
+            self.player.chipsInHand += self.player.howmuch
+            pass
+        else:
+            # lose
+            self.player.chipsInHand -= self.player.howmuch
+            pass
 
 
 class Casino:
@@ -84,16 +133,7 @@ class Casino:
     """
     loopcount = 0
 
-    def __init__(self, n):
-        dice = Dices()  # 实例化骰盅
-        self.outcome = dice.outcome  # 一组骰子摇好了
+    def __init__(self, n=300):
         while Casino.loopcount <= n:
             pass
-
-
-
-
-
-
-
 
