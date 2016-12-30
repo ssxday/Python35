@@ -3,6 +3,7 @@ import random
 
 print("重新规划")
 
+
 # 思路整理：
 # 1、把输出信息分段，单独控制；
 # 2、本例是玩一轮的情况
@@ -10,13 +11,20 @@ print("重新规划")
 
 
 class Dices:
-    """
+    """设计为单例模式
     用法：
     1、Dices.secret -> 得到一组骰子，直到调用shake()否则outcome不会变化
     2、shake() -> 返回一组新骰子组合
     3、counter() -> tuple(Triple, Small, Big)
     """
-    counter = (0, 0, 0)
+    _only = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._only is None:
+            cls._only = object.__new__(cls, *args)  # 这里有一点小变化，注意会否出错
+        return cls._only
+
+    counter = [0, 0, 0]
 
     def __init__(self):
         self.data = ''
@@ -24,7 +32,7 @@ class Dices:
 
     def shake(self):
         """
-        换一组新的骰子
+        由Dealer调用，换一组新的骰子
         :return:豹子，小，大
         """
         dice_set = [1, 2, 3, 4, 5, 6]
@@ -50,32 +58,74 @@ class Dices:
             Dices.counter[2] += 1
             outcome = 2
             self.data += "B |"
+        self.outcome = outcome
         return outcome
 
 
-class Player:
+class Notebook:
+    """设计成单例模式
+    00293|2 2 6| S |962 LOSE wining=-3押大2单位 启动secure=966
+    格式：
+    1、序号|Player押什么押多少|Dices骰子读数|大小|Dealer输赢|Player连赢|Player警戒线
+    2、最终统计信息
+    思路：
+    需要记录信息的对象调用本类，写入自己对应的信息
+    每轮结束时，由Player调用本类的最终输出
     """
+    _only = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._only is None:
+            cls._only = object.__new__(cls, *args, **kwargs)
+        return cls._only
+
+    def __init__(self):
+        pass
+
+    def jilu(self):
+        pass
+
+    def tongji(self):
+        pass
+
+
+class Player:
+    """设置Player为单例模式，只有唯一的对象
     # Player的属性如下：
-    chipsInHand
-    secure
-    beton
-    howmuch
+    chipsInHand 手中筹码
+    secure 警戒线
+    lastresult 上次的输赢
+    # winning单轮设计还用不到，先占位
+    @beton 押什么
+    @howmuch 押多少
+    bingo 赢的次数
+    screwed 输的次数
     # Player的方法如下：
     think()
     guess()
+    @feedback() 接受游戏结果的反馈，从而改变对象的某些属性
     """
+    _only = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._only is None:
+            cls._only = object.__new__(cls, *args, **kwargs)
+        return cls._only
 
     def __init__(self, cih=500):
         self.chipsInHand = cih  # 手中筹码
         self.secure = cih  # 警戒值
+        self.lastresult = False  # 上一轮的输赢记录
+        # self.winning = 0  # 连赢轮数（单轮设计用不到）
         self.beton = self.guess()
         self.howmuch = self.think()
 
     def guess(self, beton=2):
         # 尝试：guess负责beton
+        self.beton = beton  # 还要多次guess嘛，return是初始化用的
         return beton
 
-    def think(self,howmuch=1):
+    def think(self, howmuch=1):
         # 尝试：think负责howmuch
         """
         1、考虑安全线
@@ -89,36 +139,53 @@ class Player:
         else:
             pass
             # 判断上次是不是豹子
+        self.howmuch = howmuch  # 还要不断的think嘛
         return howmuch
+
+    # 由dealer进行调用
+    def feedback(self, wl):
+        if wl:  # win
+            if self.lastresult:  # 上次也赢了
+                pass
+            else:  # 上次输了
+                pass
+            pass
+        else:  # lose
+            if self.lastresult:  # 但是上次赢了
+                pass
+            else:  # 上次也输了
+                pass
+            pass
+        # 记录本次输赢结果供下次使用
+        self.lastresult = wl
+        # 判断连赢次数是否超过心理预期
+        pass
+        # 生成说明
+        pass
 
 
 class Dealer:  # 有可能本类才是各类的核心
-    """
-    # Dealer属性如下：
-    cover -> int 骰子有结果了，但是放在罩子里不让人知道
-    lastresult -> bool 上一轮的输赢
+    """一轮游戏争取只在这里解决，多轮再去Casino
+    # Dealer实例化Dices和Player两个对象
     # Dealer方法如下：
     """
 
     def __init__(self):
-        self.dice = Dices()  # 实例化骰盅
-        self.player = Player()  # 实例化玩家
-        self.outcome = 'unknown'
-        self.cover = self.dice.outcome  # 一组骰子摇好了,但是还没人知道
-        self.lastresult = False
-
-    def uncover(self):
-        self.outcome = self.cover  # 结果揭晓
+        self.dice = Dices()  # 实例化骰盅，单例模式
+        self.player = Player()  # 实例化玩家，单例模式
 
     def deal(self):
-        if self.outcome == self.player.beton:
+        if self.dice.outcome == self.player.beton:
             # Win
             self.player.chipsInHand += self.player.howmuch
-            pass
+            wl = True
         else:
             # lose
             self.player.chipsInHand -= self.player.howmuch
-            pass
+            wl = False
+
+        # 向player发送反馈
+        self.player.feedback(wl)  # wl -> win or lose
 
 
 class Casino:
@@ -136,4 +203,5 @@ class Casino:
     def __init__(self, n=300):
         while Casino.loopcount <= n:
             pass
+
 
