@@ -1,74 +1,29 @@
 # -*- coding:utf-8 -*-
 import random
-
 print("重新规划")
-
-
 # 思路整理：
 # 1、把输出信息分段，单独控制；
 # 2、本例是玩一轮的情况
 #
 
 
-class Dices:
-    """设计为单例模式
-    用法：
-    1、Dices.secret -> 得到一组骰子，直到调用shake()否则outcome不会变化
-    2、shake() -> 返回一组新骰子组合
-    3、counter() -> tuple(Triple, Small, Big)
-    """
-    _only = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._only is None:
-            cls._only = object.__new__(cls, *args)  # 这里有一点小变化，注意会否出错
-        return cls._only
-
-    counter = [0, 0, 0]
-
-    def __init__(self):
-        self.data = ''
-        self.outcome = self.shake()  # 同时data也记录
-
-    def shake(self):
-        """
-        由Dealer调用，换一组新的骰子
-        :return:豹子，小，大
-        """
-        dice_set = [1, 2, 3, 4, 5, 6]
-        dice1 = random.choice(dice_set)
-        dice2 = random.choice(dice_set)
-        dice3 = random.choice(dice_set)
-
-        self.data = "|%d %d %d|" % (dice1, dice2, dice3)
-        setsum = dice1 + dice2 + dice3
-        outcome = None  # 先初始化一下
-
-        if dice1 == dice2 and dice2 == dice3:
-            Dices.counter[0] += 1
-            outcome = 0
-            self.data += "T |"
-
-        elif 4 <= setsum <= 10:
-            Dices.counter[1] += 1
-            outcome = 1
-            self.data += "S |"
-
-        elif 11 <= setsum <= 17:
-            Dices.counter[2] += 1
-            outcome = 2
-            self.data += "B |"
-        self.outcome = outcome
-        return outcome
-
-
 class Notebook:
     """设计成单例模式
     00293|2 2 6| S |962 LOSE wining=-3押大2单位 启动secure=966
     格式：
-    1、序号|Player押什么押多少|Dices骰子读数|大小|Dealer输赢|Player连赢|Player警戒线
+    1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Dealer输赢|Player连赢|Player警戒线
     2、最终统计信息
-    思路：
+        small:145 (48.333333%)
+        big:150 (50.000000%)
+        豹子:5 (1.666667%)
+
+        玩的次数：300
+        剩余筹码：1005
+        最高筹码：1005
+        最高连赢次数：8
+        调转次数：133(44.333333%)
+        赢的次数：167(55.666667%)
+    3、思路：
     需要记录信息的对象调用本类，写入自己对应的信息
     每轮结束时，由Player调用本类的最终输出
     """
@@ -80,13 +35,83 @@ class Notebook:
         return cls._only
 
     def __init__(self):
+        self.dice_data = ''
+        self.player_data = ''
+        self.dealer_data = ''
+
+        self.statistics = ''  # 统计信息9项
+        self.dice_counter = [0, 0, 0]  # 统计豹，大，小的次数
+        self.maxChip = 500  # 记录最高筹码值
         pass
 
-    def jilu(self):
+    def from_dice(self, data):
+        a, b, c, d = data
+        self.dice_data = '|%d %d %d|%s|' % (a, b, c, ['T', 'S', 'B'][d])
+        self.dice_counter[data[3]] += 1  # 骰子计数器+1
+        print(self.dice_data)
+        pass
+
+    def from_player(self, data):
+        wl, cih = data
+        # 格式化
+        self.player_data = '%d %s' % (cih, {True: 'WIN', False: 'LOSE'}[wl])
+        # 判断是否突破最高筹码
+        if cih > self.maxChip:
+            self.maxChip = cih
+        pass
+
+    def from_dealer(self, data):
+        self.player_data = '' % data
+        pass
+
+    def echo(self):
         pass
 
     def tongji(self):
         pass
+
+
+class Dices:
+    """设计为单例模式
+    用法：
+    1、outcome -> 得到一组骰子，直到调用shake()否则outcome不会变化
+    2、shake() -> 返回一组新骰子组合
+    """
+    _only = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._only is None:
+            cls._only = object.__new__(cls, *args)  # 这里有一点小变化，注意会否出错
+        return cls._only
+
+    def __init__(self):
+        self.notebook = Notebook()  # 实例化笔记本单例
+        self.outcome = self.shake()  # 在shake()里调用notebook的方法记录
+
+    def shake(self):
+        """
+        由Dealer调用，换一组新的骰子
+        :return:豹子，小，大
+        """
+        dice_set = [1, 2, 3, 4, 5, 6]
+        dice1 = random.choice(dice_set)
+        dice2 = random.choice(dice_set)
+        dice3 = random.choice(dice_set)
+
+        setsum = dice1 + dice2 + dice3
+        outcome = None  # 先初始化一下
+        data = [dice1, dice2, dice3]
+
+        if dice1 == dice2 and dice2 == dice3:
+            outcome = 0
+        elif 4 <= setsum <= 10:
+            outcome = 1
+        elif 11 <= setsum <= 17:
+            outcome = 2
+        data.append(outcome)  # 添加outcome信息
+        self.outcome = outcome  # 刷新self.outcome
+        self.notebook.from_dice(data)  # 调用笔记本，记录数据
+        return outcome
 
 
 class Player:
@@ -113,8 +138,10 @@ class Player:
         return cls._only
 
     def __init__(self, cih=500):
+        self.notebook = Notebook()  # 拿出笔记本
         self.chipsInHand = cih  # 手中筹码
         self.secure = cih  # 警戒值
+        self.maxChip = cih
         self.lastresult = False  # 上一轮的输赢记录
         # self.winning = 0  # 连赢轮数（单轮设计用不到）
         self.beton = self.guess()
@@ -144,11 +171,14 @@ class Player:
 
     # 由dealer进行调用
     def feedback(self, wl):
+        data = [wl]  # 产生的信息记录
         if wl:  # win
             if self.lastresult:  # 上次也赢了
                 pass
             else:  # 上次输了
                 pass
+            # 判断是否突破最高筹码记录
+
             pass
         else:  # lose
             if self.lastresult:  # 但是上次赢了
@@ -160,7 +190,9 @@ class Player:
         self.lastresult = wl
         # 判断连赢次数是否超过心理预期
         pass
-        # 生成说明
+        # 生成说明data->[输赢,当前轮cih]
+        data.append(self.chipsInHand)
+        self.notebook.from_player(data)
         pass
 
 
@@ -183,7 +215,6 @@ class Dealer:  # 有可能本类才是各类的核心
             # lose
             self.player.chipsInHand -= self.player.howmuch
             wl = False
-
         # 向player发送反馈
         self.player.feedback(wl)  # wl -> win or lose
 
@@ -205,3 +236,27 @@ class Casino:
             pass
 
 
+# Notebook测试区
+print('Notebook测试区')
+nb = Notebook()
+# nb.from_dice((1,2,3,0))
+# nb.from_dice((1,2,3,2))
+# nb.from_dice((1,2,3,1))
+# print(nb.dice_data)
+# print(nb.dice_counter)
+# nb.from_player((True, 480))
+# print('最高值：', nb.maxChip)
+# print(nb.player_data)
+
+# Dices测试区
+print('Dices测试区')
+dc = Dices()
+
+# Player测试区
+print('Player测试区')
+pl = Player()
+
+# Dealer测试区
+print('Dealer测试区')
+dl = Dealer()
+dl.deal()
