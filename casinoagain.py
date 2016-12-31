@@ -1,17 +1,25 @@
 # -*- coding:utf-8 -*-
+"""
+这是一个模拟玩骰子猜大小的游戏
+各类的定义如下：
+class Notebook
+    记录游戏结果并进行统计
+class Dices
+    随机生成一套骰子
+class Player
+    实现玩游戏的方法
+class Dealer
+    对游戏结果进行判断
+"""
 import random
-print("重新规划")
-# 思路整理：
-# 1、把输出信息分段，单独控制；
-# 2、本例是玩一轮的情况
-#
+print("面向对象模式重写玩骰子游戏")
 
 
 class Notebook:
     """设计成单例模式
     00293|2 2 6| S |962 LOSE wining=-3押大2单位 启动secure=966
     格式：
-    # 1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Dealer输赢|Player连赢|Player警戒线
+    1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
     2、最终统计信息
         small:145 (48.333333%)
         big:150 (50.000000%)
@@ -31,7 +39,7 @@ class Notebook:
 
     def __new__(cls, *args, **kwargs):
         if cls._only is None:
-            cls._only = object.__new__(cls, *args, **kwargs)
+            cls._only = object.__new__(cls, *args)
         return cls._only
 
     def __init__(self, flag=True):
@@ -58,7 +66,7 @@ class Notebook:
         self.loop_counter += 1  # 次数计数器先跳字
         wl, cih, beton, howmuch = data
         # 格式化
-        self.player_did = '押%s%d单位' % (['','小','大'][beton],howmuch)
+        self.player_did = '押%s%d单位' % (['', '小', '大'][beton], howmuch)
         self.player_data = '%d %s' % (cih, {True: 'WIN', False: 'LOSE'}[wl])
         # 判断是否突破最高筹码
         if cih > self.maxChip:
@@ -68,10 +76,11 @@ class Notebook:
 
     # 输出一条信息
     def echo(self):
-# 1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
+        # 格式：
+        # 序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
         reg = r'{:0>5d} {} {} {}'
         if self.flag:  # 输出开关打开
-            onepiece = reg.format(self.loop_counter,self.player_did,self.dice_reading,self.player_data)
+            onepiece = reg.format(self.loop_counter, self.player_did, self.dice_reading, self.player_data)
             print(onepiece)
         pass
 
@@ -147,7 +156,7 @@ class Player:
 
     def __new__(cls, *args, **kwargs):
         if cls._only is None:
-            cls._only = object.__new__(cls, *args, **kwargs)
+            cls._only = object.__new__(cls, *args)
         return cls._only
 
     def __init__(self, cih=500):
@@ -202,14 +211,14 @@ class Player:
         # 判断连赢次数是否超过心理预期
         pass
         # 生成说明data->[输赢,当前轮cih]
-        data += [self.chipsInHand,self.beton,self.howmuch]
+        data += [self.chipsInHand, self.beton, self.howmuch]
         self.notebook.player_write(data)
 
 
 class Dealer:  # 有可能本类才是各类的核心
     """一轮游戏争取只在这里解决，多轮再去Casino
-    # Dealer实例化Dices和Player两个对象
-    # Dealer方法如下：
+    # Table实例化Dices和Player两个对象
+    # Table方法如下：
     """
 
     def __init__(self):
@@ -234,46 +243,16 @@ class Dealer:  # 有可能本类才是各类的核心
 
 class Casino:
     """循环过程在这里完成
-    一个完整的playn()流程自diceset()起，经过guess()，至deal()，
-    最后notes()输出单轮情况说明
-    统计信息最后输出
-    playn()首先实例化Dices()
-        Dices() -> outcome
-        Dices() -> data记录
-        Dices() -> counter -> 统计阶段
     """
-    loopcount = 0
 
     def __init__(self, n=300):
-        while Casino.loopcount <= n:
-            pass
+        self.loopcount = 0  # 循环次数记录
+        self.dler = Dealer()
+        while self.loopcount < n:
+            self.loopcount += 1
+            self.dler.deal()
 
-
-# Notebook测试区
-print('Notebook测试区')
-nb = Notebook()
-# nb.from_dice((1,2,3,0))
-# nb.from_dice((1,2,3,2))
-# nb.from_dice((1,2,3,1))
-# print(nb.dice_data)
-# print(nb.dice_counter)
-# nb.from_player((True, 480))
-# print('最高值：', nb.maxChip)
-# print(nb.player_data)
-
-# Dices测试区
-print('Dices测试区')
-dc = Dices()
-
-# Player测试区
-print('Player测试区')
-pl = Player()
-
-# Dealer测试区
-print('Dealer测试区')
 dl = Dealer()
 dl.deal()  # 开始执行了一轮游戏
 
-# help(str.format)
-
-
+# playn = Casino()
