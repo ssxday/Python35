@@ -12,28 +12,14 @@ class Dealer
     对游戏结果进行判断
 """
 import random
+
 print("面向对象模式重写玩骰子游戏")
 
 
 class Notebook:
     """设计成单例模式
-    00293|2 2 6| S |962 LOSE wining=-3押大2单位 启动secure=966
-    格式：
-    1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
-    2、最终统计信息
-        small:145 (48.333333%)
-        big:150 (50.000000%)
-        豹子:5 (1.666667%)
-
-        玩的次数：300
-        剩余筹码：1005
-        最高筹码：1005
-        最高连赢次数：8
-        调转次数：133(44.333333%)
-        赢的次数：167(55.666667%)
-    3、思路：
-    需要记录信息的对象调用本类，写入自己对应的信息
-    每轮结束时，由Player调用本类的最终输出
+    单行格式：
+    序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
     """
     _only = None
 
@@ -43,14 +29,16 @@ class Notebook:
         return cls._only
 
     def __init__(self, flag=True):
+        # 单轮游戏展示信息
         self.flag = flag  # 输出开关
         self.dice_reading = ''  # 骰子读数及大小
         self.player_data = ''  # cih及输赢
         self.player_did = ''  # Player押什么以及押多少
-
-        self.statistics = ''  # 统计信息9项
+        # 统计信息
         self.dice_counter = [0, 0, 0]  # 骰子计数器：统计豹，大，小的次数
-        self.loop_counter = 0  # 序号记录转移到本类Notebook进行记录
+        self.wl_counter = [0, 0]  # [输,赢]计数器
+        self.loop_counter = 0  # 序号记录 -> 调用player_write()方法的次数
+        self.chipsLeft = 0
         self.maxChip = 500  # 记录最高筹码值
         pass
 
@@ -64,33 +52,50 @@ class Notebook:
     # 由Player调用
     def player_write(self, data):
         self.loop_counter += 1  # 次数计数器先跳字
+        # 拆包data
         wl, cih, beton, howmuch = data
+        if wl:
+            self.wl_counter[1] += 1
+        else:
+            self.wl_counter[0] += 1
+        self.chipsLeft = cih  # 手上剩余筹码
         # 格式化
         self.player_did = '押%s%d单位' % (['', '小', '大'][beton], howmuch)
         self.player_data = '%d %s' % (cih, {True: 'WIN', False: 'LOSE'}[wl])
         # 判断是否突破最高筹码
         if cih > self.maxChip:
             self.maxChip = cih
-        self.echo()  # 调用输出
+        self.echo()  # 调用单行输出
         pass
 
     # 输出一条信息
     def echo(self):
         # 格式：
         # 序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
-        reg = r'{:0>5d} {} {} {}'
+        reg = r'{:0>3d} {} {} {}'
         if self.flag:  # 输出开关打开
-            onepiece = reg.format(self.loop_counter, self.player_did, self.dice_reading, self.player_data)
-            print(onepiece)
-        pass
+            line = reg.format(self.loop_counter, self.player_did, self.dice_reading, self.player_data)
+            print(line)
 
-    # 整理整体统计信息
-    def tongji(self):
-        pass
+    # 整理n次统计信息
+    def statistic(self):
+        # 统计1、统计骰子结果及概率
+        dice_p = [i / sum(self.dice_counter) for i in self.dice_counter]
+        for o, t, p in zip(['豹子', '小', '大'], self.dice_counter, dice_p):
+            print('%s:%d(%.2f%%)' % (o, t, p * 100))
+        # 统计2、统计输赢结果及概率
+        wl_p = [i / sum(self.wl_counter) for i in self.wl_counter]
+        for o, p, t in zip(['输', '赢'], self.wl_counter, wl_p):
+            print('%s的次数：%d(%f%%)' % (o, p, t * 100))
+        # 其他信息
+        print('剩余筹码：%d' % self.chipsLeft)
+        print('最高纪录：%d' % self.maxChip)
 
     # 整个过程结束时调用，输出统计信息
     def __del__(self):
-        self.tongji()
+        if self.flag:
+            print()  # 空一行
+            self.statistic()  # 调用输出统计信息
 
 
 class Dices:
@@ -244,7 +249,6 @@ class Dealer:  # 有可能本类才是各类的核心
 class Casino:
     """循环过程在这里完成
     """
-
     def __init__(self, n=300):
         self.loopcount = 0  # 循环次数记录
         self.dler = Dealer()
@@ -252,7 +256,8 @@ class Casino:
             self.loopcount += 1
             self.dler.deal()
 
-dl = Dealer()
-dl.deal()  # 开始执行了一轮游戏
 
-# playn = Casino()
+# play = Dealer()
+# play.deal()  # 玩一轮
+
+playN = Casino(1)  # 循环玩,默认300次
