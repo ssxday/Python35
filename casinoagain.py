@@ -11,7 +11,7 @@ class Notebook:
     """设计成单例模式
     00293|2 2 6| S |962 LOSE wining=-3押大2单位 启动secure=966
     格式：
-    1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Dealer输赢|Player连赢|Player警戒线
+    # 1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Dealer输赢|Player连赢|Player警戒线
     2、最终统计信息
         small:145 (48.333333%)
         big:150 (50.000000%)
@@ -34,41 +34,54 @@ class Notebook:
             cls._only = object.__new__(cls, *args, **kwargs)
         return cls._only
 
-    def __init__(self):
-        self.dice_data = ''
-        self.player_data = ''
-        self.dealer_data = ''
+    def __init__(self, flag=True):
+        self.flag = flag  # 输出开关
+        self.dice_reading = ''  # 骰子读数及大小
+        self.player_data = ''  # cih及输赢
+        self.player_did = ''  # Player押什么以及押多少
 
         self.statistics = ''  # 统计信息9项
-        self.dice_counter = [0, 0, 0]  # 统计豹，大，小的次数
+        self.dice_counter = [0, 0, 0]  # 骰子计数器：统计豹，大，小的次数
+        self.loop_counter = 0  # 序号记录转移到本类Notebook进行记录
         self.maxChip = 500  # 记录最高筹码值
         pass
 
+    # 由Dices调用
     def from_dice(self, data):
         a, b, c, d = data
-        self.dice_data = '|%d %d %d|%s|' % (a, b, c, ['T', 'S', 'B'][d])
+        self.dice_reading = '|%d %d %d|%s|' % (a, b, c, ['T', 'S', 'B'][d])
         self.dice_counter[data[3]] += 1  # 骰子计数器+1
-        print(self.dice_data)
         pass
 
-    def from_player(self, data):
-        wl, cih = data
+    # 由Player调用
+    def player_write(self, data):
+        self.loop_counter += 1  # 次数计数器先跳字
+        wl, cih, beton, howmuch = data
         # 格式化
+        self.player_did = '押%s%d单位' % (['','小','大'][beton],howmuch)
         self.player_data = '%d %s' % (cih, {True: 'WIN', False: 'LOSE'}[wl])
         # 判断是否突破最高筹码
         if cih > self.maxChip:
             self.maxChip = cih
+        self.echo()  # 调用输出
         pass
 
-    def from_dealer(self, data):
-        self.player_data = '' % data
-        pass
-
+    # 输出一条信息
     def echo(self):
+# 1、序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
+        reg = r'{:0>5d} {} {} {}'
+        if self.flag:  # 输出开关打开
+            onepiece = reg.format(self.loop_counter,self.player_did,self.dice_reading,self.player_data)
+            print(onepiece)
         pass
 
+    # 整理整体统计信息
     def tongji(self):
         pass
+
+    # 整个过程结束时调用，输出统计信息
+    def __del__(self):
+        self.tongji()
 
 
 class Dices:
@@ -86,7 +99,7 @@ class Dices:
 
     def __init__(self):
         self.notebook = Notebook()  # 实例化笔记本单例
-        self.outcome = self.shake()  # 在shake()里调用notebook的方法记录
+        self.outcome = 'unknown'  # 在shake()里调用notebook的方法记录
 
     def shake(self):
         """
@@ -144,8 +157,8 @@ class Player:
         self.maxChip = cih
         self.lastresult = False  # 上一轮的输赢记录
         # self.winning = 0  # 连赢轮数（单轮设计用不到）
-        self.beton = self.guess()
-        self.howmuch = self.think()
+        self.beton = 2  # 不再初始化时调用guess
+        self.howmuch = 1  # 不再初始化时调用think
 
     def guess(self, beton=2):
         # 尝试：guess负责beton
@@ -177,8 +190,6 @@ class Player:
                 pass
             else:  # 上次输了
                 pass
-            # 判断是否突破最高筹码记录
-
             pass
         else:  # lose
             if self.lastresult:  # 但是上次赢了
@@ -191,9 +202,8 @@ class Player:
         # 判断连赢次数是否超过心理预期
         pass
         # 生成说明data->[输赢,当前轮cih]
-        data.append(self.chipsInHand)
-        self.notebook.from_player(data)
-        pass
+        data += [self.chipsInHand,self.beton,self.howmuch]
+        self.notebook.player_write(data)
 
 
 class Dealer:  # 有可能本类才是各类的核心
@@ -207,6 +217,9 @@ class Dealer:  # 有可能本类才是各类的核心
         self.player = Player()  # 实例化玩家，单例模式
 
     def deal(self):
+        self.dice.shake()  # 摇骰子,Dices变换outcome
+        self.player.guess()  # Player变换beton
+        self.player.think()  # Player变换howmuch
         if self.dice.outcome == self.player.beton:
             # Win
             self.player.chipsInHand += self.player.howmuch
@@ -259,4 +272,8 @@ pl = Player()
 # Dealer测试区
 print('Dealer测试区')
 dl = Dealer()
-dl.deal()
+dl.deal()  # 开始执行了一轮游戏
+
+# help(str.format)
+
+
