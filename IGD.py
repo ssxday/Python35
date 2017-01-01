@@ -79,7 +79,7 @@ print('itertools模块 - 无限迭代'.center(50, '*'))
 import itertools
 
 print("无限迭代count(),用于生成等差数列")
-for i in itertools.count(3, 4):
+for i in itertools.count(3, 4):  # y = 3 + 4x
     if i < 15:  # 如果不加条件会一直往下走,必须加break
         print(i)
     else:

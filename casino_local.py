@@ -176,7 +176,7 @@ class Player:
 
     def guess(self, beton=2):
         # 尝试：guess负责beton
-        self.beton = beton  # 还要多次guess嘛，return是初始化用的
+        self.beton = random.choice([1, 2])  # 主要目的，变换beton
         return beton
 
     def think(self, howmuch=1):
@@ -193,7 +193,7 @@ class Player:
         else:
             pass
             # 判断上次是不是豹子
-        self.howmuch = howmuch  # 还要不断的think嘛
+        self.howmuch = howmuch  # 主要目的，变换howmuch
         return howmuch
 
     # 由dealer进行调用
@@ -247,17 +247,22 @@ class Dealer:  # 有可能本类才是各类的核心
 
 
 class Casino:
-    """循环过程在这里完成
+    """单例模式
+    循环过程在这里完成
     """
+    _only = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._only is None:
+            cls._only = object.__new__(cls)  # 这里再加参数就出错，为什么？
+        return cls._only
+
     def __init__(self, n=300):
         self.loopcount = 0  # 循环次数记录
-        self.dler = Dealer()
+        self.dealer = Dealer()
         while self.loopcount < n:
             self.loopcount += 1
-            self.dler.deal()
-
-
-# play = Dealer()
-# play.deal()  # 玩一轮
+            self.dealer.deal()
 
 playN = Casino(1)  # 循环玩,默认300次
+

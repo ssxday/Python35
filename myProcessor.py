@@ -28,7 +28,7 @@ class MyProcessor:
         :param flag: 功能见engine()引擎
         :return: 修改次数的总和
         """
-        import listlib
+        import listlib  # 自定义的模块
         mp = map(self.engine, self.listchef(pathname, len(listlib.lib)), \
                  listlib.lib, self.listchef(flag, len(listlib.lib)))
         return sum(list(mp))

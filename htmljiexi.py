@@ -1,22 +1,25 @@
 # -*- coding:utf-8 -*-
 import html.parser as hp
 from urllib.request import urlopen
+
 page = urlopen('http://localhost/code/inno.php').read().decode()
 print(page)
 help(hp.HTMLParser)
+
+
 class MyHParser(hp.HTMLParser):  # 一定要继承HTMLParser
     # hp.HTMLParser.handle系列
-    def handle_starttag(self,tag,attr):  # 重载的方法必须跟原方法参数对应
+    def handle_starttag(self, tag, attrs):  # 重载的方法必须跟原方法参数对应
         if tag == 'form':
-            print('我他妈的找到了！')
+            print('我他妈的找到了！', tag, attrs)
 
-    def handle_data(self,data):
+    def handle_data(self, data):
         pass
 
-    def handle_endtag(self,tag):
+    def handle_endtag(self, tag):
         pass
 
-    def handle_startendtag(self,tag,end):
+    def handle_startendtag(self, tag, end):
         pass
 
     # 构造一个上下文管理器
@@ -38,8 +41,3 @@ with MyHParser() as p:  # 同上效果
     print('HTMLParser实例：', p)
     p.feed(page)
     print('吃饱了！')
-
-
-
-
-
