@@ -2,11 +2,13 @@
 import os
 import re
 import http.client as hct
+import urllib.request as uq
 import html.parser
 
 
 class MyHTMLParser(html.parser.HTMLParser):
     """解析网络数据的源代码，定位目标"""
+
     def __init__(self):
         super(MyHTMLParser, self).__init__()
         self.target = ''
@@ -29,27 +31,26 @@ class Fetch:
     """连接互联网，去拿图片回来，利用多线程"""
 
     def __init__(self, mark, savepath):
-        self.keyword = mark
-        self.savepath = savepath
+        self.keyword = mark  # fanhao
+        self.savepath = savepath  # 只是纯目录
         self.HOST = r'www.javbus3.com'  # 用http包请求网络资源不需要加http协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
-        self.target = ''
+        self.target = ''  # 目标资源的URL
 
         self.fetch(mark)  # 初始化调用fetch()
 
     def fetch(self, keyword):
         """获取网络资源"""
-        # 格式：https://www.javbus3.com/search/abp-123
         # https://www.javbus3.com/PGD-907
-        request = r'/search/'+keyword
-        self.hcc = hct.HTTPSConnection(self.HOST, 443)  # 连接服务器HTTPS协议
+        request = os.sep + keyword
+        self.hcc = hct.HTTPSConnection(self.HOST, 443)  # 连接服务器对象(HTTPS协议)
         self.hcc.request('GET', request)  # 请求数据
         with self.hcc.getresponse() as resp:
             data = resp.read().decode()
             # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
-        # self.hcc.close()
+        self.hcc.close()
         print('发出的请求是：', request)
 
     def pickup(self, data):
@@ -57,7 +58,14 @@ class Fetch:
         with MyHTMLParser() as self.parser:  # 自定义的上下文管理器，原来没有
             self.parser.feed(data)  # 自定义解析器开始工作
             self.target = self.parser.target  # 从解析器对象里拿到目标url
-        pass
+        self.recover()  # 把远程资源下载到指定位置
+
+    def recover(self):
+        """把目标url资源下载到指定位置"""
+        dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
+        with uq.urlopen(self.target) as urlf:
+            with open(dst, 'wb') as f:
+                f.write(urlf.read())
 
 
 class Mate:
@@ -120,8 +128,11 @@ class Mate:
         # 由于mark_out()方法设计的原因，当文件名不具备标志时，会原样输出
         # 这种情况下不能带着文件路径一块传出去，因此多声明一个pure_name
         v_mark = self.mark_out(pure_name)  # 剥离出标的对象的标志
-        if v_mark not in self.img_pool:  # 与比对库进行比对
-            # 说明不存在相应的文件，需要去互联网上找资源
+        if v_mark not in self.img_pool:  # 与比对库进行比对，说明不存在相应的文件
+            # 且 v_mark符合标准格式时
+            # if not re.search(r'^[a-z]{2,}-\d*', v_mark, re.I):
+            #     return  # 可能会出错
+            # 需要去互联网上找资源
             print('我要上网去找')
             # 进入关键环节
             self.fetch = Fetch(v_mark, pure_path)  # 请求互联网数据的开关
@@ -151,6 +162,8 @@ class Mate:
 
 
 fc = Mate()
+a = fc.mark_out('abp-123我们.mkv')
+print(a)
 fc.engine()
 
 
