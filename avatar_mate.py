@@ -143,8 +143,8 @@ class Mate:
             if not re.search(r'^[a-z]{2,}-\d*', v_mark, re.I):
                 return
             # 需要去互联网上找资源
-            print('我要上网去找', v_mark)  # 实时查看
-            print('img_pool是：', self.img_pool)  # 实时查看
+            # print('我要上网去找', v_mark)  # 实时查看
+            # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
             self.fetch = Fetch(v_mark, pure_path)  # 请求互联网数据的开关
         else:  # 相对应的文件存在时
@@ -174,4 +174,3 @@ class Mate:
 
 fc = Mate()
 fc.engine()
-
