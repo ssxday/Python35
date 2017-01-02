@@ -7,8 +7,30 @@ import html.parser
 import threading
 
 
+# 单例装饰器
+def singleton(cls, *args, **kw):
+    instances = {}
+
+    def _singleton():
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+
+    return _singleton
+
+
+@singleton
 class TodoList:
-    """"""
+    """采用单线程时，你并不知道任务总量有多少
+    因此首先把整体的任务列出来，再分别处理掉，同时可以掌握进度
+    所有对象共用一张TodoList，因此本类采用单例模式
+    """
+
+    def __init__(self):
+        self.todo = []  # 初始化任务列表
+
+    def add_task(self, task):
+        self.todo.append(task)
 
 
 class MyHTMLParser(html.parser.HTMLParser):
@@ -179,4 +201,3 @@ class Mate:
 
 fc = Mate()
 fc.engine()
-
