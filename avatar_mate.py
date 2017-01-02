@@ -51,7 +51,7 @@ class Fetch:
             # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
-        print('发出的请求是：', request)
+        # print('发出的请求是：', request)
 
     def pickup(self, data):
         """从带回来的数据data里找出所需资源的url"""
@@ -62,16 +62,24 @@ class Fetch:
 
     def recover(self):
         """把目标url资源下载到指定位置"""
+        hdr = {  # 头信息
+            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+            'Accept-Encoding': 'none',
+            'Accept-Language': 'en-US,en;q=0.8',
+            'Connection': 'keep-alive'}
         dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
-        with uq.urlopen(self.target) as urlf:
-            with open(dst, 'wb') as f:
-                f.write(urlf.read())
+        req = uq.Request(self.target, headers=hdr)  # 设置详细的请求，重点是头信息
+        with uq.urlopen(req) as telefile:
+            with open(dst, 'wb') as localfile:
+                localfile.write(telefile.read())  # 写入文件，完成！
 
 
 class Mate:
     """"""
     VIDEO = ['.mp4', '.avi', '.rmvb', '.mkv']
-    IMAGE = ['jpg', 'jpeg', 'gif', 'bmp', 'png']
+    IMAGE = ['.jpg', '.jpeg', '.gif', '.bmp', '.png']
 
     def __init__(self):
         self.img_pool = []
@@ -87,7 +95,7 @@ class Mate:
             elif os.path.isdir(filepath):
                 self.engine(filepath)  # 递归
 
-    def __branch(self, pathname, *exceptions):
+    def __branch(self, pathname):
         """分流，只留视频文件和本层文件夹，以供engine遍历"""
         vs = []
         dirs = []
@@ -109,7 +117,9 @@ class Mate:
         dirs.sort()
         vs.sort()
         self.img_pool = [self.mark_out(i) for i in imgs]  # 把比对库剥离出标志
-        return dirs + vs
+        # 注意：return的顺序(先文件后目录)要与engine()中遍历时对文件或目录的判断顺序一致
+        # 否则img_pool发生错位
+        return vs + dirs
 
     def mating(self, filepath):
         """
@@ -133,7 +143,8 @@ class Mate:
             # if not re.search(r'^[a-z]{2,}-\d*', v_mark, re.I):
             #     return  # 可能会出错
             # 需要去互联网上找资源
-            print('我要上网去找')
+            # print('我要上网去找', v_mark)  # 实时查看
+            # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
             self.fetch = Fetch(v_mark, pure_path)  # 请求互联网数据的开关
         else:  # 相对应的文件存在时
@@ -162,9 +173,5 @@ class Mate:
 
 
 fc = Mate()
-a = fc.mark_out('abp-123我们.mkv')
-print(a)
 fc.engine()
 
-
-# fc = Fetch('abp-123', '/Users/AUG/Desktop')
