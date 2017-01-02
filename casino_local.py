@@ -12,22 +12,27 @@ class Dealer
     对游戏结果进行判断
 """
 import random
-
 print("面向对象模式重写玩骰子游戏")
 
 
+# 单例装饰器
+def singleton(cls, *args, **kw):
+    instances = {}
+
+    def _singleton(*args):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+
+    return _singleton
+
+
+@singleton
 class Notebook:
     """设计成单例模式
     单行格式：
     序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
     """
-    _only = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._only is None:
-            cls._only = object.__new__(cls, *args)
-        return cls._only
-
     def __init__(self, flag=True):
         # 单轮游戏展示信息
         self.flag = flag  # 输出开关
@@ -98,19 +103,13 @@ class Notebook:
             self.statistic()  # 调用输出统计信息
 
 
+@singleton
 class Dices:
     """设计为单例模式
     用法：
     1、outcome -> 得到一组骰子，直到调用shake()否则outcome不会变化
     2、shake() -> 返回一组新骰子组合
     """
-    _only = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._only is None:
-            cls._only = object.__new__(cls, *args)  # 这里有一点小变化，注意会否出错
-        return cls._only
-
     def __init__(self):
         self.notebook = Notebook()  # 实例化笔记本单例
         self.outcome = 'unknown'  # 在shake()里调用notebook的方法记录
@@ -141,6 +140,7 @@ class Dices:
         return outcome
 
 
+@singleton
 class Player:
     """设置Player为单例模式，只有唯一的对象
     # Player的属性如下：
@@ -157,13 +157,6 @@ class Player:
     guess()
     @feedback() 接受游戏结果的反馈，从而改变对象的某些属性
     """
-    _only = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._only is None:
-            cls._only = object.__new__(cls, *args)
-        return cls._only
-
     def __init__(self, cih=500):
         self.notebook = Notebook()  # 拿出笔记本
         self.chipsInHand = cih  # 手中筹码
@@ -220,7 +213,7 @@ class Player:
         self.notebook.player_write(data)
 
 
-class Dealer:  # 有可能本类才是各类的核心
+class Dealer:  # 本类才是各类的核心
     """一轮游戏争取只在这里解决，多轮再去Casino
     # Table实例化Dices和Player两个对象
     # Table方法如下：
@@ -246,17 +239,11 @@ class Dealer:  # 有可能本类才是各类的核心
         self.player.feedback(wl)  # wl -> win or lose
 
 
+@singleton
 class Casino:
     """单例模式
     循环过程在这里完成
     """
-    _only = None
-
-    def __new__(cls, *args, **kwargs):
-        if cls._only is None:
-            cls._only = object.__new__(cls)  # 这里再加参数就出错，为什么？
-        return cls._only
-
     def __init__(self, n=300):
         self.loopcount = 0  # 循环次数记录
         self.dealer = Dealer()
@@ -264,5 +251,5 @@ class Casino:
             self.loopcount += 1
             self.dealer.deal()
 
-playN = Casino(1)  # 循环玩,默认300次
 
+playN = Casino(1)  # 循环玩,默认300次
