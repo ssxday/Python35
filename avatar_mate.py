@@ -33,7 +33,7 @@ class Fetch:
     def __init__(self, mark, savepath):
         self.keyword = mark  # fanhao
         self.savepath = savepath  # 只是纯目录
-        self.HOST = r'www.javbus3.com'  # 用http包请求网络资源不需要加http协议前缀
+        self.HOST = r'www.javbus3.com'  # 用https包请求网络资源不需要加https协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
