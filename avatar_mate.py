@@ -1,4 +1,9 @@
 # -*- coding:utf-8 -*-
+"""这里保存着整条链式结构的每一个关键部位
+这是不会事先生成指令集的版本
+找到一个，处理一个。无法知道进度，也不知道处理了那一条指令
+代码也不够健壮，在avatar_threadings.py中已有改进
+"""
 import os
 import re
 import http.client as hct
