@@ -1,22 +1,4 @@
 # -*- coding:utf-8 -*-
-import urllib.request as ur
-
-# url = r'https://pics.javbus.info/cover/5o99_b.jpg'
-url = 'http://localhost/code/logo.jpg'
-hdr = {
-    'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-    'Accept-Encoding': 'none',
-    'Accept-Language': 'en-US,en;q=0.8',
-    'Connection': 'keep-alive'}
-req = ur.Request(url, headers=hdr)
-with ur.urlopen(req) as tu:  # 提交请求
-    with open('/Users/AUG/Desktop/imgtest.jpg', 'wb') as f:
-        f.write(tu.read())
-# tu = ur.urlretrieve(url, '/Users/AUG/Desktop/imgtest.jpg')
-
-
 user_agents = [
     'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
     'Opera/9.25 (Windows NT 5.1; U; en)',
@@ -28,8 +10,12 @@ user_agents = [
     "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
 ]
 
-help(ur.Request)
-import this
-import requests
-a = "woai#\#ni"
+# 判断一个路径是否是目录，需不需要先判断该路径是否存在？
+a = {'k': 'v', 'k2': 'v2'}
+print(len(a))
+# print(a.popitem())
+# print(a.popitem())
 print(a)
+
+
+# help(a)

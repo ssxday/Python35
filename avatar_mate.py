@@ -138,7 +138,8 @@ class Mate:
         # 由于mark_out()方法设计的原因，当文件名不具备标志时，会原样输出
         # 这种情况下不能带着文件路径一块传出去，因此多声明一个pure_name
         v_mark = self.mark_out(pure_name)  # 剥离出标的对象的标志
-        if v_mark not in self.img_pool:  # 与比对库进行比对，说明不存在相应的文件
+        # 与比对库进行比对，当不存在相应的文件时
+        if v_mark not in self.img_pool:
             # 过滤掉因mark_out()原样输出造成v_mark不符合符合标准格式的情况
             if not re.search(r'^[a-z]{2,}-\d*', v_mark, re.I):
                 return
@@ -147,7 +148,7 @@ class Mate:
             # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
             self.fetch = Fetch(v_mark, pure_path)  # 请求互联网数据的开关
-        else:  # 相对应的文件存在时
+        else:  # 当相对应的文件存在时
             pass
 
     def exceptions(self, filename):
