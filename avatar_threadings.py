@@ -29,9 +29,11 @@ class TodoList:
     def __init__(self):
         self.todo = []  # 初始化任务列表
 
+    # 在Match.pairing()中调用
     def add_task(self, task):
         self.todo.append(task)
 
+    # 在Dispatch.start()中被调用
     def take_task(self):
         if not self.isempty():  # 还有任务可以领
             """do something"""
@@ -47,7 +49,7 @@ class TodoList:
             return True
 
     def __call__(self, *args, **kwargs):
-        """启动多线程"""
+        """可能启动多线程的点"""
         return self.todo
 
     def __getitem__(self, item):
@@ -77,8 +79,12 @@ class MyHTMLParser(html.parser.HTMLParser):
             if ('class', 'bigImage') == attrs[0]:
                 href, url = attrs[1]
                 self.target = url  # 成功定位目标资源url
-            else:  # 并没有找到目标资源的url
-                self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
+                # 警告警告警告：handle_系列函数只能设置找到了怎么办
+                # 不能设置找不到怎么办，因为：
+                # 找到了之后parser还可能重复调用本方法
+                # 把原本处理好的数据丢弃，比如下面这个else，将把self.target擦掉
+            # else:  # 并没有找到目标资源的url
+            #     self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
 
     # 构造一个上下文管理器
     def __enter__(self):
@@ -142,7 +148,7 @@ class Fetch:
 
 class Match:
     """"""
-    VIDEO = ['.mp4', '.avi', '.rmvb', '.mkv']
+    VIDEO = ['.mp4', '.avi', '.rmvb', '.mkv', '.wmv']
     IMAGE = ['.jpg', '.jpeg', '.gif', '.bmp', '.png']
 
     def __init__(self):
@@ -242,14 +248,53 @@ class Match:
 
 class Dispatch:
     """"""
-    def __init__(self, tasks):
-        self.tasks = tasks
+    def __init__(self, tasks=TodoList(), n=4):
+        """
+        #
+        :param tasks: expecting a TodoList object
+        :param n: 开启的线程数目
+        """
+        self.todo = tasks  # 把TodoList对象传进来
+        self.lines = []  # 初始化线程管理器，n代表同时开n个线程
+        i = 1
+        while i <= n:
+            self.lines.append(threading.Thread)
+            i += 1
+        # print('这是任务列表对象：', self.todo）
+        self.start()  # 千里之行始于足下
 
-    def do(self):
-        while self.tasks:
-            pass
+    def start(self):
+        """当线程集非空的时候，就一直循环
+        需要一个机制，当一个线程完成时，判断TodoList是否还有任务
+        不需要关心线程集满没满，因为结束的线程会空出自己的位置
+        它只要判断还有没有TodoList，并重新调用自己接受新任务
+        """
+        while self.lines:  # 当还有线程位置的时候
+            try:
+                task = self.todo.take_task()  # 取到任务指令
+                print('拿到一个任务', task)
+                # 判断有没有空闲的线程，如果有，加入线程并启动，如果没有，就join()等
+
+                print('完成这个任务', task)
+            except TaskError:
+                # 说明已经取不到task了 -> 删除已经关闭的线程，否则会一直重复进行最后一个task
+                pass
+
+            self.lines.pop()
+
+        print('ALL TASKS COMPLETED.')
+
+    def do(self, task):
+        fetch = Fetch(task)
+        pass
 
 
 fc = Match()  # 结果就是最终生成TodoList
-print(fc.todo())
-print(len(fc.todo))
+td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
+print('查看任务列表：', td())
+print('测试dispatch'.center(50, '*'))
+dp = Dispatch()
+# print('aaa',dp.lines)
+# print('aaa',dp.lines[1]())
+# dp.do(('abp-123', '/Users/AUG/Desktop/overall'))  # 成功
+
