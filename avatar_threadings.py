@@ -23,14 +23,46 @@ def singleton(cls, *args, **kw):
 class TodoList:
     """采用单线程时，你并不知道任务总量有多少
     因此首先把整体的任务列出来，再分别处理掉，同时可以掌握进度
+    队列无上限，或设置一个很高的上限
     所有对象共用一张TodoList，因此本类采用单例模式
     """
-
     def __init__(self):
         self.todo = []  # 初始化任务列表
 
     def add_task(self, task):
         self.todo.append(task)
+
+    def take_task(self):
+        if not self.isempty():  # 还有任务可以领
+            """do something"""
+            task = self.todo.pop(0)  # 弹出任务，并return这个任务
+            return task
+        else:  # 没有任务了
+            raise TaskError('No Task Left.')
+
+    def isempty(self):
+        if any(self.todo):
+            return False
+        else:
+            return True
+
+    def __call__(self, *args, **kwargs):
+        """启动多线程"""
+        return self.todo
+
+    def __getitem__(self, item):
+        return self.todo[item]
+
+    def __len__(self):
+        return len(self.todo)
+
+
+class TaskError(Exception):
+    def __init__(self, note):
+        self.note = note
+
+    def __str__(self):
+        return self.note
 
 
 class MyHTMLParser(html.parser.HTMLParser):
@@ -43,8 +75,10 @@ class MyHTMLParser(html.parser.HTMLParser):
     def handle_starttag(self, tag, attrs):
         if tag == 'a' and len(attrs) == 2:
             if ('class', 'bigImage') == attrs[0]:
-                href, value = attrs[1]
-                self.target = value
+                href, url = attrs[1]
+                self.target = url  # 成功定位目标资源url
+            else:  # 并没有找到目标资源的url
+                self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
 
     # 构造一个上下文管理器
     def __enter__(self):
@@ -57,15 +91,14 @@ class MyHTMLParser(html.parser.HTMLParser):
 class Fetch:
     """连接互联网，去拿图片回来，利用多线程"""
 
-    def __init__(self, mark, savepath):
-        self.keyword = mark  # fanhao
-        self.savepath = savepath  # 只是纯目录
+    def __init__(self, task=('', '')):
+        self.keyword, self.savepath = task
         self.HOST = r'www.javbus3.com'  # 用https包请求网络资源不需要加https协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
 
-        self.fetch(mark)  # 初始化调用fetch()
+        self.fetch(self.keyword)  # 初始化调用fetch()
 
     def fetch(self, keyword):
         """获取网络资源"""
@@ -82,10 +115,14 @@ class Fetch:
 
     def pickup(self, data):
         """从带回来的数据data里找出所需资源的url"""
-        with MyHTMLParser() as self.parser:  # 自定义的上下文管理器，原来没有
+        with MyHTMLParser() as self.parser:  # 自定义的上下文管理器，HTMLParser自身并不是
             self.parser.feed(data)  # 自定义解析器开始工作
             self.target = self.parser.target  # 从解析器对象里拿到目标url
-        self.recover()  # 把远程资源下载到指定位置
+        # 因为互联网因素，这个值有可能取到一个空字符串，因此要做一个判断
+        if self.target:
+            self.recover()  # 把远程资源下载到指定位置
+        else:
+            print('未能通过指令获取到{}的URL'.format(self.keyword))
 
     def recover(self):
         """把目标url资源下载到指定位置"""
@@ -103,22 +140,25 @@ class Fetch:
                 localfile.write(telefile.read())  # 写入文件，完成！
 
 
-class Mate:
+class Match:
     """"""
     VIDEO = ['.mp4', '.avi', '.rmvb', '.mkv']
     IMAGE = ['.jpg', '.jpeg', '.gif', '.bmp', '.png']
 
     def __init__(self):
         self.img_pool = []
-        self.fetch = None
-        pass
+        self.todo = TodoList()  # 初始化多线程任务列表
+        self.engine()  # 自动运行engine()
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
+        if not os.path.isdir(pathname):
+            exit('路径不存在或路径并非是一个目录.')
+            # return  # 得到一个空的指令集
         for file in self.__branch(pathname):
             filepath = os.path.join(pathname, file)
             if os.path.isfile(filepath):  # 这里的file已经只有视频的类型了
-                self.mating(filepath)
+                self.pairing(filepath)
             elif os.path.isdir(filepath):
                 self.engine(filepath)  # 递归
 
@@ -148,15 +188,15 @@ class Mate:
         # 否则img_pool发生错位
         return vs + dirs
 
-    def mating(self, filepath):
-        """
+    def pairing(self, filepath):
+        """比对视频文件在图片池中有无对应，从而得出Todo任务，并添加到TodoList
         几经过滤，传进来的一定是视频后缀的文件路径
         1、判断是否存在与之对应的图片文件。如果没有，继续第2步
-        2、实例化fetch对象去互联网上取相应的文件
-            需要对fetch提供的信息有：
+        2、实例化TodoList，提交用于执行联网Fetch任务的关键信息
+            需要提供的执行信息有：
             1、标志
             2、原标的文件所在的目录，以便保存
-        3、把取回来的文件保存到对应的目录
+        3、。。。
         :param filepath:整段文件路径
         :return:
         """
@@ -167,13 +207,14 @@ class Mate:
         v_mark = self.mark_out(pure_name)  # 剥离出标的对象的标志
         if v_mark not in self.img_pool:  # 与比对库进行比对，说明不存在相应的文件
             # 过滤掉因mark_out()原样输出造成v_mark不符合符合标准格式的情况
-            if not re.search(r'^[a-z]{2,}-\d*', v_mark, re.I):
+            if not re.search(r'^[a-z]{2,}-\d{3,}', v_mark, re.I):
                 return
             # 需要去互联网上找资源
-            print('我要上网去找', v_mark)  # 实时查看
-            print('img_pool是：', self.img_pool)  # 实时查看
+            # print('我要上网去找', v_mark)  # 实时查看
+            # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
-            self.fetch = Fetch(v_mark, pure_path)  # 请求互联网数据的开关
+            instructions = v_mark, pure_path  # 关键指令！！！
+            self.todo.add_task(instructions)  # 添加任务指令 -> tuple
         else:  # 相对应的文件存在时
             pass
 
@@ -183,15 +224,15 @@ class Mate:
         if filename.startswith('.') or filename.startswith('_'):
             return True
         # filename里有rids出现
-        rids = ['Cari', '1pon', 'paco']
+        rids = ['cari', '1pon', 'paco', 'heyzo']
         for r in rids:
-            if r in filename:
+            if r in filename.lower():
                 return True
         return False
 
     def mark_out(self, text):
         """在text中剥离出标志"""
-        ptn = r'^[a-z]{2,}-\d*'  # 标志的正则
+        ptn = r'^[a-z]{2,}-\d{3,}'  # 标志的正则
         try:
             mark = re.findall(ptn, text, re.I)[0]
             return mark
@@ -199,5 +240,16 @@ class Mate:
             return text  # 注意，如果找不到合格的标志，则返回原本的text
 
 
-fc = Mate()
-fc.engine()
+class Dispatch:
+    """"""
+    def __init__(self, tasks):
+        self.tasks = tasks
+
+    def do(self):
+        while self.tasks:
+            pass
+
+
+fc = Match()  # 结果就是最终生成TodoList
+print(fc.todo())
+print(len(fc.todo))
