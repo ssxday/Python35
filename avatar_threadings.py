@@ -255,32 +255,35 @@ class Dispatch:
         :param n: 开启的线程数目
         """
         self.todo = tasks  # 把TodoList对象传进来
-        self.lines = []  # 初始化线程管理器，n代表同时开n个线程
-        i = 1
-        while i <= n:
-            self.lines.append(threading.Thread)
-            i += 1
+        self.__thrds = []  # 初始化线程管理器
+        self.max = n  # 同时开启的最大线程数量
+        # i = 1
+        # while i <= n:
+        #     self.__thrds.append(threading.Thread)
+        #     i += 1
         # print('这是任务列表对象：', self.todo）
         self.start()  # 千里之行始于足下
 
     def start(self):
-        """当线程集非空的时候，就一直循环
+        """当线程管理器非空的时候，就一直循环
         需要一个机制，当一个线程完成时，判断TodoList是否还有任务
         不需要关心线程集满没满，因为结束的线程会空出自己的位置
         它只要判断还有没有TodoList，并重新调用自己接受新任务
         """
-        while self.lines:  # 当还有线程位置的时候
+        while not self.isEmpty():  # 当线程管理器非空的时候
+            # 最外层以非空做为循环进行的条件时
+            # 内部就必须要有一个机制，当指令集还能取到指令的情况下
+            # 线程管理器关闭一个线程同时也要开启一个线程，
             try:
                 task = self.todo.take_task()  # 取到任务指令
                 print('拿到一个任务', task)
                 # 判断有没有空闲的线程，如果有，加入线程并启动，如果没有，就join()等
-
                 print('完成这个任务', task)
             except TaskError:
                 # 说明已经取不到task了 -> 删除已经关闭的线程，否则会一直重复进行最后一个task
                 pass
 
-            self.lines.pop()
+            # self.__thrds.pop()
 
         print('ALL TASKS COMPLETED.')
 
@@ -288,13 +291,30 @@ class Dispatch:
         fetch = Fetch(task)
         pass
 
+    # 同队列类似设计
+    def load(self, task):
+        if self.isFull():
+            '''join等'''
+        else:
+            self.__thrds.append(threading.Thread(target=self.do, name=task[0], args=task))
+
+    def unload(self, i=0):  # unload掉哪一个就有讲究了
+        pass
+
+    def isFull(self):
+        if self.__thrds.__len__() >= self.max:  # 故意写>=，担心有什么事会发生
+            return True
+        return False
+
+    def isEmpty(self):
+        if self.__thrds.__len__() == 0:
+            return True
+        return False
 
 fc = Match()  # 结果就是最终生成TodoList
 td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
 print('查看任务列表：', td())
 print('测试dispatch'.center(50, '*'))
 dp = Dispatch()
-# print('aaa',dp.lines)
-# print('aaa',dp.lines[1]())
 # dp.do(('abp-123', '/Users/AUG/Desktop/overall'))  # 成功
 
