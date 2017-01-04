@@ -2,6 +2,7 @@
 """从avatar_threading.py中进化而来，主要是保留了指令集
 而多线程部分则去除掉
 """
+import random
 import os
 import re
 import http.client as hct
@@ -98,10 +99,21 @@ class MyHTMLParser(html.parser.HTMLParser):
 
 class Fetch:
     """连接互联网，去拿图片回来，利用多线程"""
+    user_agents = [
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+        'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
+        'Opera/9.25 (Windows NT 5.1; U; en)',
+        'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+        'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
+        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
+        'Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9',
+        "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Ubuntu/11.04 Chromium/16.0.912.77 Chrome/16.0.912.77 Safari/535.7",
+        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
+    ]
 
     def __init__(self, task=('', '')):
         self.keyword, self.savepath = task
-        self.HOST = r'www.javbus3.com'  # 用https包请求网络资源不需要加https协议前缀
+        self.HOST = r'www.javbus5.com'  # 用https包请求网络资源不需要加https协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
@@ -135,7 +147,7 @@ class Fetch:
     def recover(self):
         """把目标url资源下载到指定位置"""
         hdr = {  # 头信息
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+            'User-Agent': random.choice(self.user_agents),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
             'Accept-Encoding': 'none',
@@ -147,6 +159,10 @@ class Fetch:
             with open(dst, 'wb') as localfile:
                 localfile.write(telefile.read())  # 写入文件，完成！
 
+    def __del__(self):
+        """"""
+        # print('%s任务完成' % self.keyword)
+
 
 class Match:
     """"""
@@ -156,7 +172,7 @@ class Match:
     def __init__(self):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine()  # 自动运行engine()
+        self.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast')  # 自动运行engine()
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
@@ -180,7 +196,8 @@ class Match:
             if self.exceptions(file):  # 封装了一个去掉例外的函数
                 continue
             filepath = os.path.join(pathname, file)  # 前头拼接上路径
-            if os.path.isfile(filepath):
+            # 是文件，且有内容，空文件不行。规避了写入失败却留下空文件影响下一轮的判断
+            if os.path.isfile(filepath) and os.path.getsize(filepath):
                 suffix = os.path.splitext(file)[1]  # 文件扩展名
                 if suffix in self.VIDEO:
                     vs.append(file)
@@ -232,7 +249,10 @@ class Match:
         if filename.startswith('.') or filename.startswith('_'):
             return True
         # filename里有rids出现
-        rids = ['cari', '1pon', 'paco', 'heyzo']
+        rids = [
+            'cari', '1pon', 'paco', 'heyzo', 'mywife','luxu','dic',
+            'gkd','hmpd','lxvs','nacr'
+        ]
         for r in rids:
             if r in filename.lower():
                 return True
@@ -249,10 +269,14 @@ class Match:
 
 
 fc = Match()  # 结果就是最终生成TodoList
-td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
+# td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
 print('查看任务列表：')
-for task in td():
+for task in fc.todo():
     print(task)
-print('任务个数共计:', td.__len__())
+print('任务个数共计:', fc.todo.__len__())
 print('下面依次处理各项任务'.center(50, '*'))
-
+i = 0
+for task in fc.todo():
+    i += 1
+    print(i, '正在处理：', task)
+    Fetch(task)
