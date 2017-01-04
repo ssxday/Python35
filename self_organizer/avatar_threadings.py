@@ -1,8 +1,12 @@
 # -*- coding:utf-8 -*-
+"""在avatar_instruction.py的基础上，进一步实现多线程
+"""
+import random
 import os
 import re
 import http.client as hct
 import urllib.request as uq
+import requests
 import html.parser
 import threading
 
@@ -27,36 +31,36 @@ class TodoList:
     所有对象共用一张TodoList，因此本类采用单例模式
     """
     def __init__(self):
-        self.todo = []  # 初始化任务列表
+        self.__todo = []  # 初始化任务列表
 
     # 在Match.pairing()中调用
     def add_task(self, task):
-        self.todo.append(task)
+        self.__todo.append(task)
 
     # 在Dispatch.start()中被调用
     def take_task(self):
         if not self.isempty():  # 还有任务可以领
             """do something"""
-            task = self.todo.pop(0)  # 弹出任务，并return这个任务
+            task = self.__todo.pop(0)  # 弹出任务，并return这个任务
             return task
         else:  # 没有任务了
             raise TaskError('No Task Left.')
 
     def isempty(self):
-        if any(self.todo):
+        if any(self.__todo):
             return False
         else:
             return True
 
     def __call__(self, *args, **kwargs):
         """可能启动多线程的点"""
-        return self.todo
+        return self.__todo
 
     def __getitem__(self, item):
-        return self.todo[item]
+        return self.__todo[item]
 
     def __len__(self):
-        return len(self.todo)
+        return len(self.__todo)
 
 
 class TaskError(Exception):
@@ -96,17 +100,29 @@ class MyHTMLParser(html.parser.HTMLParser):
 
 class Fetch:
     """连接互联网，去拿图片回来，利用多线程"""
+    user_agents = [
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+        'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
+        'Opera/9.25 (Windows NT 5.1; U; en)',
+        'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+        'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
+        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
+        'Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9',
+        "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Ubuntu/11.04 Chromium/16.0.912.77 Chrome/16.0.912.77 Safari/535.7",
+        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
+    ]
 
     def __init__(self, task=('', '')):
         self.keyword, self.savepath = task
-        self.HOST = r'www.javbus3.com'  # 用https包请求网络资源不需要加https协议前缀
+        self.HOST = r'www.javbus5.com'  # 用https包请求网络资源不需要加https协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
 
-        self.fetch(self.keyword)  # 初始化调用fetch()
+        # self.fetch(self.keyword)  # 初始化调用fetch()
+        self.fetch1(self.keyword)  # 二选一
 
-    def fetch(self, keyword):
+    def fetch(self, keyword):  # 等同于fetch1
         """获取网络资源"""
         # https://www.javbus3.com/PGD-907
         request = os.sep + keyword
@@ -117,7 +133,14 @@ class Fetch:
             # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
-        # print('发出的请求是：', request)
+
+    def fetch1(self, keyword):  # 等同于fetch
+        """使用requests包获取网络资源"""
+        requesturl = r'https://' + self.HOST + os.sep + keyword
+        r = requests.get(requesturl)
+        data = r.content.decode()
+        r.close()
+        self.pickup(data)
 
     def pickup(self, data):
         """从带回来的数据data里找出所需资源的url"""
@@ -126,14 +149,15 @@ class Fetch:
             self.target = self.parser.target  # 从解析器对象里拿到目标url
         # 因为互联网因素，这个值有可能取到一个空字符串，因此要做一个判断
         if self.target:
-            self.recover()  # 把远程资源下载到指定位置
+            # self.recover()  # 把远程资源下载到指定位置
+            self.retrieve()  # 把远程资源下载到指定位置，二选一
         else:
             print('未能通过指令获取到{}的URL'.format(self.keyword))
 
-    def recover(self):
-        """把目标url资源下载到指定位置"""
+    def recover(self):  # 等同于retrieve()
+        """使用urllib.request.urlopen()把目标url资源下载到指定位置"""
         hdr = {  # 头信息
-            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+            'User-Agent': random.choice(self.user_agents),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
             'Accept-Encoding': 'none',
@@ -145,6 +169,18 @@ class Fetch:
             with open(dst, 'wb') as localfile:
                 localfile.write(telefile.read())  # 写入文件，完成！
 
+    def retrieve(self):  # 等同于recover()
+        """使用requests.get()把目标url资源下载到指定位置的方法"""
+        dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
+        telefile = requests.get(self.target)
+        with open(dst, 'wb') as localfile:
+            localfile.write(telefile.content)  # 写入文件，完成！
+        telefile.close()
+
+    def __del__(self):
+        """"""
+        # print('%s任务完成' % self.keyword)
+
 
 class Match:
     """"""
@@ -154,13 +190,14 @@ class Match:
     def __init__(self):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine()  # 自动运行engine()
+        self.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast')  # 自动运行engine()
+        # r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast'
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
         if not os.path.isdir(pathname):
             exit('路径不存在或路径并非是一个目录.')
-            # return  # 得到一个空的指令集
+            # return  # 将会得到一个空的指令集
         for file in self.__branch(pathname):
             filepath = os.path.join(pathname, file)
             if os.path.isfile(filepath):  # 这里的file已经只有视频的类型了
@@ -178,7 +215,8 @@ class Match:
             if self.exceptions(file):  # 封装了一个去掉例外的函数
                 continue
             filepath = os.path.join(pathname, file)  # 前头拼接上路径
-            if os.path.isfile(filepath):
+            # 是文件，且有内容，空文件不行。规避了写入失败却留下空文件影响下一轮的判断
+            if os.path.isfile(filepath) and os.path.getsize(filepath):
                 suffix = os.path.splitext(file)[1]  # 文件扩展名
                 if suffix in self.VIDEO:
                     vs.append(file)
@@ -230,7 +268,10 @@ class Match:
         if filename.startswith('.') or filename.startswith('_'):
             return True
         # filename里有rids出现
-        rids = ['cari', '1pon', 'paco', 'heyzo']
+        rids = [
+            'cari', '1pon', 'paco', 'heyzo', 'mywife','luxu','dic',
+            'gkd','hmpd','lxvs','nacr'
+        ]
         for r in rids:
             if r in filename.lower():
                 return True
@@ -247,59 +288,38 @@ class Match:
 
 
 class Dispatch:
-    """"""
-    def __init__(self, tasks=TodoList(), n=4):
-        """
-        #
-        :param tasks: expecting a TodoList object
-        :param n: 开启的线程数目
-        """
-        self.todo = tasks  # 把TodoList对象传进来
+    """管理线程管理器，起到调度作用"""
+    def __init__(self, n=4):
         self.__thrds = []  # 初始化线程管理器
         self.max = n  # 同时开启的最大线程数量
-        # i = 1
-        # while i <= n:
-        #     self.__thrds.append(threading.Thread)
-        #     i += 1
-        # print('这是任务列表对象：', self.todo）
-        self.start()  # 千里之行始于足下
-
-    def start(self):
-        """当线程管理器非空的时候，就一直循环
-        需要一个机制，当一个线程完成时，判断TodoList是否还有任务
-        不需要关心线程集满没满，因为结束的线程会空出自己的位置
-        它只要判断还有没有TodoList，并重新调用自己接受新任务
-        """
-        while not self.isEmpty():  # 当线程管理器非空的时候
-            # 最外层以非空做为循环进行的条件时
-            # 内部就必须要有一个机制，当指令集还能取到指令的情况下
-            # 线程管理器关闭一个线程同时也要开启一个线程，
-            try:
-                task = self.todo.take_task()  # 取到任务指令
-                print('拿到一个任务', task)
-                # 判断有没有空闲的线程，如果有，加入线程并启动，如果没有，就join()等
-                print('完成这个任务', task)
-            except TaskError:
-                # 说明已经取不到task了 -> 删除已经关闭的线程，否则会一直重复进行最后一个task
-                pass
-
-            # self.__thrds.pop()
-
-        print('ALL TASKS COMPLETED.')
-
-    def do(self, task):
-        fetch = Fetch(task)
-        pass
 
     # 同队列类似设计
     def load(self, task):
         if self.isFull():
+            # 线程池满了，有如下思路：
+            # 1、unload不再alive的线程
+            # 2、所有线程都Alive；
             '''join等'''
         else:
-            self.__thrds.append(threading.Thread(target=self.do, name=task[0], args=task))
+            trd = threading.Thread(target=Fetch, args=(task,))
+            self.__thrds.append(trd)
+            self.__thrds[-1].start()  # 启动刚刚加载的线程 == trd.start()
+        self.busy()  # 甭管满没满，先让他busy一下。可能会出错
 
+    # 线程完成后调用，问题是谁来判断线程完成，又是谁来调用卸载掉已经结束的线程
     def unload(self, i=0):  # unload掉哪一个就有讲究了
-        pass
+        if self.isEmpty():
+            pass
+        else:
+            self.__thrds.pop(i)
+
+    def busy(self):
+        """清理掉线程池里的空线程"""
+        if not self.isEmpty():
+            # 扫描线程池，看谁is_alive()为False
+            for t in self.__thrds:
+                if not t.is_alive():
+                    self.__thrds.remove(t)
 
     def isFull(self):
         if self.__thrds.__len__() >= self.max:  # 故意写>=，担心有什么事会发生
@@ -311,10 +331,36 @@ class Dispatch:
             return True
         return False
 
+
 fc = Match()  # 结果就是最终生成TodoList
-td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
-print('查看任务列表：', td())
-print('测试dispatch'.center(50, '*'))
-dp = Dispatch()
-# dp.do(('abp-123', '/Users/AUG/Desktop/overall'))  # 成功
+# td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
+print('查看任务列表：')
+for task in fc.todo():
+    print(task)
+print('任务个数共计:', fc.todo.__len__())
+
+print('下面依次处理各项任务'.center(50, '*'))
+dispatchor = Dispatch(1)  # 实例化一个调度员，用来管理线程
+
+# 线程池满了有两种情况：
+# 1、所有线程都处于alive，从而无法加入新任务
+# 2、一部分线程处于alive，可以通过busy()让它们腾位置
+# 3、利用一个特性：只有alive的线程才可以被其他线程join()等待
+# 有两个层次，如果线程池满了，需要让线程的生成受阻
+# 把取任务本身封装成一个函数，让他们同时去一个任务集拿任务#
+i = 0
+
+
+# 开始封装
+def unit():
+    global i
+    while fc.todo():
+        i += 1
+        task = fc.todo.take_task()  # 取出一项任务
+        print(i, '正在处理：', task)
+        Fetch(task)
+
+# 封装结束
+unit()
+print('主流线程end')
 
