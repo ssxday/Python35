@@ -30,6 +30,7 @@ class TodoList:
     队列无上限，或设置一个很高的上限
     所有对象共用一张TodoList，因此本类采用单例模式
     """
+
     def __init__(self):
         self.__todo = []  # 初始化任务列表
 
@@ -87,8 +88,8 @@ class MyHTMLParser(html.parser.HTMLParser):
                 # 不能设置找不到怎么办，因为：
                 # 找到了之后parser还可能重复调用本方法
                 # 把原本处理好的数据丢弃，比如下面这个else，将把self.target擦掉
-            # else:  # 并没有找到目标资源的url
-            #     self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
+                # else:  # 并没有找到目标资源的url
+                #     self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
 
     # 构造一个上下文管理器
     def __enter__(self):
@@ -122,7 +123,7 @@ class Fetch:
         # self.fetch(self.keyword)  # 初始化调用fetch()
         self.fetch1(self.keyword)  # 二选一
 
-    def fetch(self, keyword):
+    def fetch(self, keyword):  # 等同于fetch1
         """获取网络资源"""
         # https://www.javbus3.com/PGD-907
         request = os.sep + keyword
@@ -134,7 +135,7 @@ class Fetch:
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
 
-    def fetch1(self, keyword):
+    def fetch1(self, keyword):  # 等同于fetch
         """使用requests包获取网络资源"""
         requesturl = r'https://' + self.HOST + os.sep + keyword
         r = requests.get(requesturl)
@@ -154,7 +155,7 @@ class Fetch:
         else:
             print('未能通过指令获取到{}的URL'.format(self.keyword))
 
-    def recover(self):
+    def recover(self):  # 等同于retrieve()
         """使用urllib.request.urlopen()把目标url资源下载到指定位置"""
         hdr = {  # 头信息
             'User-Agent': random.choice(self.user_agents),
@@ -169,12 +170,13 @@ class Fetch:
             with open(dst, 'wb') as localfile:
                 localfile.write(telefile.read())  # 写入文件，完成！
 
-    def retrieve(self):
+    def retrieve(self):  # 等同于recover()
         """使用requests.get()把目标url资源下载到指定位置的方法"""
         dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
         telefile = requests.get(self.target)
         with open(dst, 'wb') as localfile:
             localfile.write(telefile.content)  # 写入文件，完成！
+        telefile.close()
 
     def __del__(self):
         """"""
@@ -267,8 +269,8 @@ class Match:
             return True
         # filename里有rids出现
         rids = [
-            'cari', '1pon', 'paco', 'heyzo', 'mywife','luxu','dic',
-            'gkd','hmpd','lxvs','nacr'
+            'cari', '1pon', 'paco', 'heyzo', 'mywife', 'luxu', 'dic',
+            'gkd', 'hmpd', 'lxvs', 'nacr'
         ]
         for r in rids:
             if r in filename.lower():
