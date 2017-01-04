@@ -9,7 +9,8 @@ processor.engine(string <待整理的目录路径>, string <指定标识>, flag<
 processor.pichuli(string <待整理的目录路径>, flag<是否操作子目录>)
 ~ OK, easy as always!
 """
-import re, os
+import re
+import os
 
 
 class MyProcessor:
