@@ -7,6 +7,7 @@ import os
 import re
 import http.client as hct
 import urllib.request as uq
+import requests
 import html.parser
 
 
@@ -118,7 +119,8 @@ class Fetch:
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
 
-        self.fetch(self.keyword)  # 初始化调用fetch()
+        # self.fetch(self.keyword)  # 初始化调用fetch()
+        self.fetch1(self.keyword)  # 二选一
 
     def fetch(self, keyword):
         """获取网络资源"""
@@ -131,7 +133,14 @@ class Fetch:
             # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
-        # print('发出的请求是：', request)
+
+    def fetch1(self, keyword):
+        """使用requests包获取网络资源"""
+        requesturl = r'https://' + self.HOST + os.sep + keyword
+        r = requests.get(requesturl)
+        data = r.content.decode()
+        r.close()
+        self.pickup(data)
 
     def pickup(self, data):
         """从带回来的数据data里找出所需资源的url"""
@@ -140,12 +149,13 @@ class Fetch:
             self.target = self.parser.target  # 从解析器对象里拿到目标url
         # 因为互联网因素，这个值有可能取到一个空字符串，因此要做一个判断
         if self.target:
-            self.recover()  # 把远程资源下载到指定位置
+            # self.recover()  # 把远程资源下载到指定位置
+            self.retrieve()  # 把远程资源下载到指定位置，二选一
         else:
             print('未能通过指令获取到{}的URL'.format(self.keyword))
 
     def recover(self):
-        """把目标url资源下载到指定位置"""
+        """使用urllib.request.urlopen()把目标url资源下载到指定位置"""
         hdr = {  # 头信息
             'User-Agent': random.choice(self.user_agents),
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
@@ -158,6 +168,13 @@ class Fetch:
         with uq.urlopen(req) as telefile:
             with open(dst, 'wb') as localfile:
                 localfile.write(telefile.read())  # 写入文件，完成！
+
+    def retrieve(self):
+        """使用requests.get()把目标url资源下载到指定位置的方法"""
+        dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
+        telefile = requests.get(self.target)
+        with open(dst, 'wb') as localfile:
+            localfile.write(telefile.content)  # 写入文件，完成！
 
     def __del__(self):
         """"""
@@ -172,7 +189,7 @@ class Match:
     def __init__(self):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast')  # 自动运行engine()
+        self.engine()  # 自动运行engine()
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
