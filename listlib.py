@@ -23,7 +23,7 @@ lib = ['abp', 'abs', 'aby', 'adn', 'adz', 'aikb', 'akaiene',
        'umd', 'upsm', 'ure', 'vagu', 'vdd', 'vec', 'vema',
        'venu', 'vgd', 'voss', 'vrtm', 'wanz', 'wat', 'whx',
        'wnz', 'wpc', 'wss', 'xrw', 'xvsr', 'ymn', 'yrh',
-       'yrz', 'ysn', 'yst', 'zex', 'zuko']
+       'yrz', 'ysn', 'yst', 'zex', 'zuko','supa']
 
 lib = sorted(list(set(lib)))
 # print(lib)
