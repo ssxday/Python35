@@ -30,6 +30,7 @@ class TodoList:
     队列无上限，或设置一个很高的上限
     所有对象共用一张TodoList，因此本类采用单例模式
     """
+
     def __init__(self):
         self.__todo = []  # 初始化任务列表
 
@@ -87,8 +88,8 @@ class MyHTMLParser(html.parser.HTMLParser):
                 # 不能设置找不到怎么办，因为：
                 # 找到了之后parser还可能重复调用本方法
                 # 把原本处理好的数据丢弃，比如下面这个else，将把self.target擦掉
-            # else:  # 并没有找到目标资源的url
-            #     self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
+                # else:  # 并没有找到目标资源的url
+                #     self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
 
     # 构造一个上下文管理器
     def __enter__(self):
@@ -190,7 +191,7 @@ class Match:
     def __init__(self):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast')  # 自动运行engine()
+        self.engine()  # 自动运行engine()
         # r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast'
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
@@ -269,8 +270,8 @@ class Match:
             return True
         # filename里有rids出现
         rids = [
-            'cari', '1pon', 'paco', 'heyzo', 'mywife','luxu','dic',
-            'gkd','hmpd','lxvs','nacr'
+            'cari', '1pon', 'paco', 'heyzo', 'mywife', 'luxu', 'dic',
+            'gkd', 'hmpd', 'lxvs', 'nacr'
         ]
         for r in rids:
             if r in filename.lower():
@@ -287,80 +288,50 @@ class Match:
             return text  # 注意，如果找不到合格的标志，则返回原本的text
 
 
-class Dispatch:
-    """管理线程管理器，起到调度作用"""
-    def __init__(self, n=4):
-        self.__thrds = []  # 初始化线程管理器
-        self.max = n  # 同时开启的最大线程数量
-
-    # 同队列类似设计
-    def load(self, task):
-        if self.isFull():
-            # 线程池满了，有如下思路：
-            # 1、unload不再alive的线程
-            # 2、所有线程都Alive；
-            '''join等'''
-        else:
-            trd = threading.Thread(target=Fetch, args=(task,))
-            self.__thrds.append(trd)
-            self.__thrds[-1].start()  # 启动刚刚加载的线程 == trd.start()
-        self.busy()  # 甭管满没满，先让他busy一下。可能会出错
-
-    # 线程完成后调用，问题是谁来判断线程完成，又是谁来调用卸载掉已经结束的线程
-    def unload(self, i=0):  # unload掉哪一个就有讲究了
-        if self.isEmpty():
-            pass
-        else:
-            self.__thrds.pop(i)
-
-    def busy(self):
-        """清理掉线程池里的空线程"""
-        if not self.isEmpty():
-            # 扫描线程池，看谁is_alive()为False
-            for t in self.__thrds:
-                if not t.is_alive():
-                    self.__thrds.remove(t)
-
-    def isFull(self):
-        if self.__thrds.__len__() >= self.max:  # 故意写>=，担心有什么事会发生
-            return True
-        return False
-
-    def isEmpty(self):
-        if self.__thrds.__len__() == 0:
-            return True
-        return False
-
-
 fc = Match()  # 结果就是最终生成TodoList
-# td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
 print('查看任务列表：')
 for task in fc.todo():
     print(task)
 print('任务个数共计:', fc.todo.__len__())
 
 print('下面依次处理各项任务'.center(50, '*'))
-dispatchor = Dispatch(1)  # 实例化一个调度员，用来管理线程
-
-# 线程池满了有两种情况：
-# 1、所有线程都处于alive，从而无法加入新任务
-# 2、一部分线程处于alive，可以通过busy()让它们腾位置
-# 3、利用一个特性：只有alive的线程才可以被其他线程join()等待
-# 有两个层次，如果线程池满了，需要让线程的生成受阻
-# 把取任务本身封装成一个函数，让他们同时去一个任务集拿任务#
-i = 0
 
 
-# 开始封装
-def unit():
-    global i
-    while fc.todo():
-        i += 1
-        task = fc.todo.take_task()  # 取出一项任务
-        print(i, '正在处理：', task)
-        Fetch(task)
+class Boss:
+    """本类完全设计为类方法，不用实例化对象即可完成
+    必须首先调用load()方法
+    """
+    i = 0
+    todo = None
+    __pool = []
 
-# 封装结束
-unit()
-print('主流线程end')
+    @classmethod
+    def load(cls, n, jobs=fc.todo):
+        cls.total = n  # 最大同时开多少个线程
+        cls.todo = jobs  # 任务池对象
+        # 线程的数目以任务量多少和最大线程数中较小的为准
+        for i in range(min(n, jobs.__len__())):
+            cls.__pool.append(threading.Thread(target=cls.unit, args=()))
 
+    @classmethod
+    def start(cls):
+        if cls.__pool:
+            print('共开启线程{}个'.format(cls.__pool.__len__()))
+            for thrd in cls.__pool:
+                thrd.start()
+            for thrd in cls.__pool:
+                if thrd.is_alive():
+                    thrd.join()
+
+    @classmethod
+    def unit(cls):
+        while cls.todo():
+            cls.i += 1
+            task = cls.todo.take_task()  # 取出一项任务
+            print(cls.i, '正在处理：', task)
+            Fetch(task)
+
+
+Boss.load(2)
+Boss.start()
+print(' 主程序END '.center(50, '='))
