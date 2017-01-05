@@ -131,7 +131,6 @@ class Fetch:
         self.hcc.request('GET', request)  # 请求数据
         with self.hcc.getresponse() as resp:
             data = resp.read().decode()
-            # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
 
@@ -254,9 +253,6 @@ class Match:
             # 过滤掉因mark_out()原样输出造成v_mark不符合符合标准格式的情况
             if not re.search(r'^[a-z]{2,}-\d{3,}', v_mark, re.I):
                 return
-            # 需要去互联网上找资源
-            # print('我要上网去找', v_mark)  # 实时查看
-            # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
             instructions = v_mark, pure_path  # 关键指令！！！
             self.todo.add_task(instructions)  # 添加任务指令 -> tuple
@@ -290,8 +286,8 @@ class Match:
 
 fc = Match()  # 结果就是最终生成TodoList
 print('查看任务列表：')
-for task in fc.todo():
-    print(task)
+for task, dst in fc.todo():
+    print('{:\t<8} =>\t{}'.format(task, dst))
 print('任务个数共计:', fc.todo.__len__())
 
 print('下面依次处理各项任务'.center(50, '*'))
@@ -306,7 +302,7 @@ class Boss:
     __pool = []
 
     @classmethod
-    def load(cls, n, jobs=fc.todo):
+    def load(cls, n=1, jobs=fc.todo):
         cls.total = n  # 最大同时开多少个线程
         cls.todo = jobs  # 任务池对象
         # 线程的数目以任务量多少和最大线程数中较小的为准
@@ -328,10 +324,10 @@ class Boss:
         while cls.todo():
             cls.i += 1
             task = cls.todo.take_task()  # 取出一项任务
-            print(cls.i, '正在处理：', task)
+            print('{:0>3} 正在将{} 的资源下载到{}'.format(cls.i, task[0], task[1]))
             Fetch(task)
 
 
-Boss.load(2)
+Boss.load(int(input('请设置线程数：')))
 Boss.start()
 print(' 主程序END '.center(50, '='))
