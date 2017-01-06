@@ -1,8 +1,14 @@
 # -*- coding:utf-8 -*-
-"""这里保存着整条链式结构的每一个关键部位
-这是不会事先生成指令集的版本
-找到一个，处理一个。无法知道进度，也不知道处理了那一条指令
-代码也不够健壮，在avatar_threadings.py中已有改进
+"""
+Licensed Materials - Property of SSX
+Copyright statement and purpose...
+--------------------------------------------
+File Name:avatar_reunion.py
+Author:
+Version:1.0
+Description:
+这里实现了完成任务的每一个基础工作，可以独立执行
+该版本没有引入任务队列。对任务的处理过程采取找到一个，处理一个的思路。
 """
 import os
 import re

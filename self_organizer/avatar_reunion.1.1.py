@@ -1,5 +1,15 @@
 # -*- coding:utf-8 -*-
-"""在avatar_instruction.py的基础上，进一步实现多线程
+"""
+Licensed Materials - Property of SSX
+Copyright statement and purpose...
+--------------------------------------------
+File Name:avatar_reunion.py
+Author:
+Version:1.1
+Description:
+- 新引入了任务队列，可以实现掌握任务量，并在执行过程中掌握进度
+- 添加了使用requests包获取网络资源的途径，效率和成功率大大提高
+- 保留了http和urllib的方式，但不推荐使用
 """
 import random
 import os
@@ -8,7 +18,6 @@ import http.client as hct
 import urllib.request as uq
 import requests
 import html.parser
-import threading
 
 
 # 单例装饰器
@@ -131,6 +140,7 @@ class Fetch:
         self.hcc.request('GET', request)  # 请求数据
         with self.hcc.getresponse() as resp:
             data = resp.read().decode()
+            # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
 
@@ -191,7 +201,6 @@ class Match:
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
         self.engine()  # 自动运行engine()
-        # r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast'
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
@@ -253,6 +262,9 @@ class Match:
             # 过滤掉因mark_out()原样输出造成v_mark不符合符合标准格式的情况
             if not re.search(r'^[a-z]{2,}-\d{3,}', v_mark, re.I):
                 return
+            # 需要去互联网上找资源
+            # print('我要上网去找', v_mark)  # 实时查看
+            # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
             instructions = v_mark, pure_path  # 关键指令！！！
             self.todo.add_task(instructions)  # 添加任务指令 -> tuple
@@ -285,49 +297,14 @@ class Match:
 
 
 fc = Match()  # 结果就是最终生成TodoList
+# td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
 print('查看任务列表：')
-for task, dst in fc.todo():
-    print('{:\t<8} =>\t{}'.format(task, dst))
+for task in fc.todo():
+    print(task)
 print('任务个数共计:', fc.todo.__len__())
-
 print('下面依次处理各项任务'.center(50, '*'))
-
-
-class Boss:
-    """本类完全设计为类方法，不用实例化对象即可完成
-    必须首先调用load()方法
-    """
-    i = 0
-    todo = None
-    __pool = []
-
-    @classmethod
-    def load(cls, n=1, jobs=fc.todo):
-        cls.total = n  # 最大同时开多少个线程
-        cls.todo = jobs  # 任务池对象
-        # 线程的数目以任务量多少和最大线程数中较小的为准
-        for i in range(min(n, jobs.__len__())):
-            cls.__pool.append(threading.Thread(target=cls.unit, args=()))
-
-    @classmethod
-    def start(cls):
-        if cls.__pool:
-            print('共开启线程{}个'.format(cls.__pool.__len__()))
-            for thrd in cls.__pool:
-                thrd.start()
-            for thrd in cls.__pool:
-                if thrd.is_alive():
-                    thrd.join()
-
-    @classmethod
-    def unit(cls):
-        while cls.todo():
-            cls.i += 1
-            task = cls.todo.take_task()  # 取出一项任务
-            print('{:0>3} 正在将{} 的资源下载到{}'.format(cls.i, task[0], task[1]))
-            Fetch(task)
-
-
-Boss.load(int(input('请设置线程数：')))
-Boss.start()
-print(' 主程序END '.center(50, '='))
+i = 0
+for task in fc.todo():
+    i += 1
+    print(i, '正在处理：', task)
+    Fetch(task)
