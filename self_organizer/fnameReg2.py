@@ -3,11 +3,16 @@
 Licensed Materials - Property of SSX
 Copyright statement and purpose...
 --------------------------------------------
-File Name:fnameorganizer.py
-Description:
-
+File Name:fnameReg2.py
 Author:
 Version:2.0
+Description:本模块为批量规范化文件名而设计
+该版本采取"一步一动"的模式，通过循环遍历查找指定标识的文件名，对不符合格式的文件名随即进行修改
+本模块对listlib模块有依赖，所有的文件名标识都存放在listlib.lib中
+- 2.0新特性：
+    使用了任务队列，在正式规范化修改文件名之前，程序首先会把所有要执行的任务列出来
+    在正式执行改名前，可以一览任务的详情和数目
+    在确认后程序统一执行上述任务
 """
 import re
 import os
@@ -50,7 +55,7 @@ class MyProcessor:
         self.loop = 0
         self.todo = TodoList()
 
-    def pichuli(self, pathname=r'/Users/AUG/Desktop/overall', flag=False):
+    def tour(self, pathname=r'/Users/AUG/Desktop/overall', flag=False):
         """
         """
         if not os.path.exists(pathname):
@@ -63,7 +68,7 @@ class MyProcessor:
             self.__engine(pathname, sign, flag)
         return self.loop
 
-    def __engine(self, pathname='', sign='abp', flag=False):
+    def __engine(self, pathname='', sign='', flag=False):
         files = os.listdir(pathname)
         for f in files:
             if not (f.startswith('.') or f.startswith('__')):
@@ -84,14 +89,7 @@ class MyProcessor:
         return self.loop
 
     def __reg(self, filename, symbol=''):
-        """
-        __私有方法
-        对包含指定字符串标记zding的文件名filename进行整理
-        在引擎engine中，已经对是否为文件进行了判断，这里只研究一个问题，把新文件名整理出来
-        :param filename:
-        :param symbol:
-        :return: 重新整理过的字符串
-        """
+        """"""
         if symbol.lower() in filename.lower():
             pat_fan = '[a-z]*' + symbol + '[a-z]*'
             fanlist = re.findall(pat_fan, filename, re.I)
@@ -120,7 +118,7 @@ class MyProcessor:
 
 
 processor = MyProcessor()
-count = processor.pichuli(flag=True)
+count = processor.tour(flag=True)
 for t in processor.todo():
     t = (os.path.split(tt)[1] for tt in t)
     src, dst = t

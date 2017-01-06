@@ -4,11 +4,11 @@ Licensed Materials - Property of SSX
 Copyright statement and purpose...
 --------------------------------------------
 File Name:fnameReg.py
-Description:
-
 Author:
 Version:1.0
-        2.0 -> fnameorganizer.py
+Description:本模块为批量规范化文件名而设计
+该版本采取"一步一动"的模式，通过循环遍历查找指定标识的文件名，对不符合格式的文件名随即进行修改
+本模块对listlib模块有依赖，所有的文件名标识都存放在listlib.lib中
 """
 import re
 import os
