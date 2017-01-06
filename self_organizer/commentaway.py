@@ -12,7 +12,7 @@ Version:1.0
 import os
 
 comment_sign = r'#'
-src = r'/Users/AUG/Desktop/fnameReg.py'
+src = r'./fnameReg.py'
 dst = '-cc'.join(os.path.splitext(src))
 
 

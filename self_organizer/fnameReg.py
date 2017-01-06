@@ -1,13 +1,14 @@
 # -*- coding:utf-8 -*-
 """
-Manual:
-请先实例化，
-processor = MyProcessor()
-~ 如果只想对单个标识进行整理，调用引擎engine()如下：
-processor.engine(string <待整理的目录路径>, string <指定标识>, flag<是否操作子目录>)
-~ 如果要指定多个标识，请把标识字符串放入文件listlib.py中的lib列表，在本程序下调用pichuli()如下：
-processor.pichuli(string <待整理的目录路径>, flag<是否操作子目录>)
-~ OK, easy as always!
+Licensed Materials - Property of SSX
+Copyright statement and purpose...
+--------------------------------------------
+File Name:fnameReg.py
+Description:
+
+Author:
+Version:1.0
+        2.0 -> fnameorganizer.py
 """
 import re
 import os
