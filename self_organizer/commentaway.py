@@ -4,12 +4,13 @@ Licensed Materials - Property of SSX
 Copyright statement and purpose...
 --------------------------------------------
 File Name:commentaway.py
-Description:本程序将自动处理掉Python代码中的注释
+Description:本程序将自动处理掉Python代码中的#注释
 
 Author:
 Version:1.0
 """
 import os
+
 comment_sign = r'#'
 src = r'/Users/AUG/Desktop/fnameReg.py'
 dst = '-cc'.join(os.path.splitext(src))
@@ -31,12 +32,7 @@ def whereisalone(line='', sign='#'):
 
 
 def newline(line=''):
-    """围绕着#展开
-    1、确定有没有#，没有井号的原样输出
-    2、出现了#：
-        #是否出现在去掉空白的开头位置
-        #没有出现在开头位置
-    """
+    """围绕着#的位置展开"""
     if r'#' not in line:
         # 没有#则原样输出
         return line
@@ -46,16 +42,10 @@ def newline(line=''):
             comment_start_posi = whereisalone(line)
         except EOFError:
             return line
-        return line[:comment_start_posi].rstrip()+os.linesep if line[:comment_start_posi].strip() != '' else ''
+        return line[:comment_start_posi].rstrip() + os.linesep if line[:comment_start_posi].strip() != '' else ''
 
 
 with open(src) as srcfile:
     with open(dst, 'w') as dstfile:
         for line in srcfile.readlines():
             dstfile.write(newline(line))
-
-
-
-
-
-
