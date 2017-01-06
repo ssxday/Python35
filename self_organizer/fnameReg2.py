@@ -132,3 +132,4 @@ if confirm:
         t = processor.todo.take_task()
         src, dst = t
         os.rename(src, dst)
+        print('{}已更名为{}'.format(src, dst))
