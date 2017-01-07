@@ -2,10 +2,15 @@
 import random, sys
 o = sys.stdout
 sys.stdout = open(r'/Library/Server/Web/Data/Sites/Default/code/browser.html', 'w')
-
-print("<title>蜗牛打法</title>")
-print("<meta charset='uft-8' />")
-
+head = """
+<html>
+<head>
+    <title>蜗牛打法</title>
+    <meta charset='utf-8' />
+</head>
+<body>
+"""
+print(head)
 
 # 连赢时按照斐波那契数列押注，一旦输了winning归零
 # winning从零开始时，一旦输了就用2倍反复押，直到回到上一轮winning结束的那个hook,
