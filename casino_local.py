@@ -34,8 +34,10 @@ class Notebook:
     序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
     """
     def __init__(self, flag=True):
-        # 单独记录筛子结果的队列
-        self.dicedata = []  # 队列
+        # 历史记录
+        self.history_length = 7  # 历史记录保留个数，所有历史记录共用
+        self.dice_history = []  # 骰子结果的历史记录
+        self.wl_history = [False]  # 输赢结果的历史记录，初始化为False
         # 单轮游戏展示信息
         self.flag = flag  # 输出开关
         self.dice_reading = ''  # 骰子读数及大小
@@ -57,34 +59,39 @@ class Notebook:
 
     def dice_record(self, outcome):
         """将记录最近7次的TSB记录"""
-        if self.dicedata.__len__() >= 7:  # 7为写死的最高历史记录
-            self.dicedata.pop(0)
-        self.dicedata.append(outcome)  # 无论如何都要添加上去，满了就踢掉最前面那个
+        if self.dice_history.__len__() >= self.history_length:  # 7为写死的最高历史记录
+            self.dice_history.pop(0)
+        self.dice_history.append(outcome)  # 无论如何都要添加上去，满了就踢掉最前面那个
 
     # 由Player调用
-    def player_write(self, data):
+    def player2notebook(self, data):
         self.loop_counter += 1  # 次数计数器先跳字
         # 拆包data
         wl, cih, beton, howmuch = data
+        self.wl_record(wl)  # 记录输赢历史
         if wl:
             self.wl_counter[1] += 1
         else:
             self.wl_counter[0] += 1
         self.chipsLeft = cih  # 手上剩余筹码
         # 格式化
-        self.player_did = '押%s%d单位' % (['', '小', '大'][beton], howmuch)
+        self.player_did = ('押%s%d单位' % (['', '小', '大'][beton], howmuch)).ljust(6)
         self.player_data = '%d %s' % (cih, {True: 'WIN', False: 'LOSE'}[wl])
         # 判断是否突破最高筹码
         if cih > self.maxChip:
             self.maxChip = cih
         self.echo()  # 调用单行输出
-        pass
+
+    def wl_record(self, wl):
+        if self.wl_history.__len__() >= self.history_length:
+            self.wl_history.pop(0)
+        self.wl_history.append(wl)
 
     # 输出一条信息
     def echo(self):
         # 格式：
         # 序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
-        reg = r'{:0>3d} {} {} {}'
+        reg = r'{:0>4d} {} {} {}'
         if self.flag:  # 输出开关打开
             line = reg.format(self.loop_counter, self.player_did, self.dice_reading, self.player_data)
             print(line)
@@ -169,8 +176,8 @@ class Player:
         self.chipsInHand = cih  # 手中筹码
         self.secure = cih  # 警戒值
         self.maxChip = cih
-        self.lastresult = False  # 上一轮的输赢记录
-        # self.winning = 0  # 连赢轮数（单轮设计用不到）
+        # self.lastresult = False  # 上一轮的输赢记录（不再需要）
+        self.winning = 0  # 连赢轮数
         self.beton = 2  # 不再初始化时调用guess
         self.howmuch = 1  # 不再初始化时调用think
 
@@ -178,50 +185,47 @@ class Player:
         """负责押边策略"""
         try:
             # 跟随最近揭晓的dice结果，如果上次dice不幸出了T，则随机选择
-            last = self.notebook.dicedata[-2]
+            last = self.notebook.dice_history[-2]  # -1是刚开出来未揭晓的结果
             self.beton = last if last != 0 else random.choice([1, 2])
         except IndexError:
             # 出错的原因是首次游戏并未产生最近揭晓的结果
             self.beton = random.choice([1, 2])
+        # self.beton = random.choice([1, 2])  # 完全随机策略
 
-    def think(self, howmuch=1):
+    def evaluate(self):
         """负责出多少的策略
         1、考虑安全线
-        2、考虑是不是第一次下注
-        3、判断上一轮dice是否是豹子0
-        4、
         :return:
         """
         if self.chipsInHand < self.secure:
-            pass
+            self.howmuch *= 2
         else:
-            pass
-            # 判断上次是不是豹子
-        self.howmuch = howmuch  # 主要目的，变换howmuch
-        return howmuch
+            self.howmuch = self.__fibo(self.winning)
 
-    # 由dealer进行调用
-    def feedback(self, wl):
-        data = [wl]  # 产生的信息记录
-        if wl:  # win
-            if self.lastresult:  # 上次也赢了
-                pass
-            else:  # 上次输了
-                pass
-            pass
-        else:  # lose
-            if self.lastresult:  # 但是上次赢了
-                pass
-            else:  # 上次也输了
-                pass
-            pass
-        # 记录本次输赢结果供下次使用
-        self.lastresult = wl
-        # 判断连赢次数是否超过心理预期
-        pass
+    def __fibo(self, n=3):
+        if n <= 2:
+            return 1
+        else:
+            return self.__fibo(n-1) + self.__fibo(n-2)
+
+    # 由dealer进行调用，向Player反馈输赢信息
+    def dealer2player(self, wl):
+        # 根据本次输赢 -> 判断连赢次数，并设置新的安全线
+        last_wl = self.notebook.wl_history[-1]
+        if wl and last_wl:
+            self.winning += 1
+            # 一定要在notebook.player2notebook()之前调取chipsLeft的值
+            # 否则数值将发生变化
+            self.secure = self.notebook.chipsLeft
+        elif not (wl or last_wl):
+            self.winning -= 1
+        elif (wl, last_wl) == (True, False):
+            self.winning = 1
+        elif (wl, last_wl) == (False, True):
+            self.winning = -1
         # 生成说明data->[输赢,当前轮cih]
-        data += [self.chipsInHand, self.beton, self.howmuch]
-        self.notebook.player_write(data)
+        data = [wl, self.chipsInHand, self.beton, self.howmuch]
+        self.notebook.player2notebook(data)
 
 
 class Dealer:  # 本类才是各类的核心
@@ -229,7 +233,6 @@ class Dealer:  # 本类才是各类的核心
     # Table实例化Dices和Player两个对象
     # Table方法如下：
     """
-
     def __init__(self):
         self.dice = Dices()  # 实例化骰盅，单例模式
         self.player = Player()  # 实例化玩家，单例模式
@@ -237,7 +240,7 @@ class Dealer:  # 本类才是各类的核心
     def deal(self):
         self.dice.shake()  # 摇骰子,Dices变换outcome
         self.player.guess()  # Player变换beton
-        self.player.think()  # Player变换howmuch
+        self.player.evaluate()  # Player变换howmuch
         if self.dice.outcome == self.player.beton:
             # Win
             self.player.chipsInHand += self.player.howmuch
@@ -247,14 +250,12 @@ class Dealer:  # 本类才是各类的核心
             self.player.chipsInHand -= self.player.howmuch
             wl = False
         # 向player发送反馈
-        self.player.feedback(wl)  # wl -> win or lose
+        self.player.dealer2player(wl)  # wl -> win or lose
 
 
 @singleton
 class Casino:
-    """单例模式
-    循环过程在这里完成
-    """
+    """循环过程在这里完成"""
     def __init__(self, n=300):
         self.loopcount = 0  # 循环次数记录
         self.dealer = Dealer()
@@ -263,4 +264,4 @@ class Casino:
             self.dealer.deal()
 
 
-playN = Casino()  # 循环玩,默认300次
+playN = Casino(3000)  # 循环玩,默认300次
