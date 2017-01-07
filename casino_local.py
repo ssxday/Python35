@@ -34,6 +34,8 @@ class Notebook:
     序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
     """
     def __init__(self, flag=True):
+        # 单独记录筛子结果的队列
+        self.dicedata = []  # 队列
         # 单轮游戏展示信息
         self.flag = flag  # 输出开关
         self.dice_reading = ''  # 骰子读数及大小
@@ -45,14 +47,19 @@ class Notebook:
         self.loop_counter = 0  # 序号记录 -> 调用player_write()方法的次数
         self.chipsLeft = 0
         self.maxChip = 500  # 记录最高筹码值
-        pass
 
     # 由Dices调用
     def from_dice(self, data):
         a, b, c, d = data
+        self.dice_record(d)  # 单独记录最近的几次dice结果
         self.dice_reading = '|%d %d %d|%s|' % (a, b, c, ['T', 'S', 'B'][d])
         self.dice_counter[data[3]] += 1  # 骰子计数器+1
-        pass
+
+    def dice_record(self, outcome):
+        """将记录最近7次的TSB记录"""
+        if self.dicedata.__len__() >= 7:  # 7为写死的最高历史记录
+            self.dicedata.pop(0)
+        self.dicedata.append(outcome)  # 无论如何都要添加上去，满了就踢掉最前面那个
 
     # 由Player调用
     def player_write(self, data):
@@ -167,14 +174,18 @@ class Player:
         self.beton = 2  # 不再初始化时调用guess
         self.howmuch = 1  # 不再初始化时调用think
 
-    def guess(self, beton=2):
-        # 尝试：guess负责beton
-        self.beton = random.choice([1, 2])  # 主要目的，变换beton
-        return beton
+    def guess(self):
+        """负责押边策略"""
+        try:
+            # 跟随最近揭晓的dice结果，如果上次dice不幸出了T，则随机选择
+            last = self.notebook.dicedata[-2]
+            self.beton = last if last != 0 else random.choice([1, 2])
+        except IndexError:
+            # 出错的原因是首次游戏并未产生最近揭晓的结果
+            self.beton = random.choice([1, 2])
 
     def think(self, howmuch=1):
-        # 尝试：think负责howmuch
-        """
+        """负责出多少的策略
         1、考虑安全线
         2、考虑是不是第一次下注
         3、判断上一轮dice是否是豹子0
@@ -252,4 +263,4 @@ class Casino:
             self.dealer.deal()
 
 
-playN = Casino(1)  # 循环玩,默认300次
+playN = Casino()  # 循环玩,默认300次
