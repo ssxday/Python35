@@ -9,7 +9,7 @@ def tax():
             tax = (income - tier[-1]) * rate[-1]
             for x in range(len(tier) - 1, 0, -1):
                 tax += (tier[x] - tier[x - 1]) * rate[x - 1]
-        elif tier[i] <= income and income < tier[i + 1]:
+        elif tier[i] <= income < tier[i + 1]:
             tax = (income - tier[i]) * rate[i]
             for j in range(i, 0, -1):
                 tax += (tier[j] - tier[j - 1]) * rate[j - 1]
