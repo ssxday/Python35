@@ -198,7 +198,7 @@ class Match:
     def __init__(self):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine()  # 自动运行engine()
+        self.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast')  # 自动运行engine()
         # r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast'
 
     def engine(self, pathname=r'/Users/AUG/Desktop/overall'):

@@ -26,7 +26,7 @@ class F63:
         files = os.listdir(pathname)
         for f in files:
             if not (f.startswith('.') or f.startswith('__')):
-                if os.path.isfile(pathname + os.sep + f):  # 判断f是文件,还得符合制定字符串在文件名中
+                if True:  # os.path.isfile(pathname + os.sep + f):  # 判断f是文件,还得符合制定字符串在文件名中
                     # --执行核心开始--
                     src = pathname + os.sep + f
                     dst = pathname + os.sep + self.jiexi(f, zding)
@@ -45,10 +45,10 @@ class F63:
                     os.rename(src, dst)
                     # --执行核心结束--
                     self.loop += 1
-                elif os.path.isdir(pathname + os.sep + f) and flag:
-                    self.engine(pathname + os.sep + f, zding, flag)
-                else:
-                    pass
+                # elif os.path.isdir(pathname + os.sep + f) and flag:
+                #     self.engine(pathname + os.sep + f, zding, flag)
+                # else:
+                #     pass
 
         return self.loop
 
@@ -108,7 +108,7 @@ if input('Proceed?(y for yes else for nothing):') == 'y':
     # 要计时的脚本start
     # print(processor.pichuli('./overall',True))
     # print(agent.engine(r'/Users/AUG/我的坚果云/tr', 'cari', True))
-    print(agent.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast/1pondo', '1pon', True))
+    print(agent.engine(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast/Carib', 'cari', False))
     # print(processor.shift('./overall',':',True))
     # 要计时的脚本end
     t2 = time.time()

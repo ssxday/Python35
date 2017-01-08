@@ -118,7 +118,7 @@ class MyProcessor:
 
 
 processor = MyProcessor()
-count = processor.tour(flag=True)
+count = processor.tour(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast',flag=True)
 for t in processor.todo():
     t = (os.path.split(tt)[1] for tt in t)
     src, dst = t
