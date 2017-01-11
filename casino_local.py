@@ -107,6 +107,13 @@ class Notebook:
                 self.secure)
             print(line)
 
+    # 由Player调用
+    def psy2notebook(self):
+        self.loop_counter += 1  # 同样由Player调用，也得跳字儿
+        """心理干预的记录"""
+        if self.flag:
+            print(r'{:0>4d} psychological intervention triggered.'.format(self.loop_counter))
+
     # 整理n次统计信息
     def statistic(self):
         # 统计1、统计骰子结果及概率
@@ -114,7 +121,12 @@ class Notebook:
         for o, t, p in zip(['豹子', '小', '大'], self.dice_counter, dice_p):
             print('%s:%d(%.2f%%)' % (o, t, p * 100))
         # 统计2、统计输赢结果及概率
-        print('\n玩了 %d 轮' % sum(self.dice_counter))
+        text = '\n玩了 {} 轮，实际将耗时{}小时{}分钟'.format(
+            sum(self.dice_counter),
+            divmod(sum(self.dice_counter), 60)[0],
+            divmod(sum(self.dice_counter), 60)[1]
+        )
+        print(text)
         wl_p = [i / sum(self.wl_counter) for i in self.wl_counter]
         for o, p, t in zip(['输', '赢'], self.wl_counter, wl_p):
             print('%s的次数：%d(%f%%)' % (o, p, t * 100))
@@ -174,8 +186,9 @@ class Player:
     bingo 赢的次数
     screwed 输的次数
     # Player的方法如下：
-    think()
+    evaluate()
     guess()
+    calm()
     @feedback() 接受游戏结果的反馈，从而改变对象的某些属性
     """
 
@@ -184,8 +197,6 @@ class Player:
         self.chipsInHand = cih  # 手中筹码
         self.notebook.cih_history.append(cih)  # 初始化时先把首次加进notebook
         self.secure = cih  # 警戒值
-        # self.maxChip = cih  # 不在这里进行记录，改到notebook
-        # self.lastresult = False  # 上一轮的输赢记录（不再需要）
         self.winning = 0  # 连赢轮数
         self.beton = 2  # 受guess()直接影响
         self.howmuch = 1  # 受evaluate()直接影响
@@ -199,7 +210,11 @@ class Player:
         except IndexError:
             # 出错的原因是首次游戏并未产生最近揭晓的结果
             self.beton = random.choice([1, 2])
-            # self.beton = random.choice([1, 2])  # 完全随机策略
+
+        # if not any(self.notebook.wl_history[-3:]):
+        #     self.beton = random.choice([1, 2])
+
+        self.beton = random.choice([1, 2])  # 完全随机策略
 
     def evaluate(self):
         """负责出多少的策略"""
@@ -207,6 +222,9 @@ class Player:
             self.howmuch *= 2
         else:
             self.howmuch = self.__fibo(self.winning)
+        # 形成最终howmuch前需要过一遍心理干预
+        # 有可能会改变howmuch最终的值
+        self.__psych()
         # 自己需要先减掉
         self.chipsInHand -= self.howmuch
 
@@ -216,20 +234,27 @@ class Player:
         else:
             return self.__fibo(n - 1) + self.__fibo(n - 2)
 
+    def __psych(self):
+        """心理干预策略"""
+        if self.chipsInHand < 2 * self.howmuch:
+            """采取措施"""
+            raise PsychError
+
+    def calm(self):
+        """心理干预启动后的反应策略"""
+        # Then...
+        self.notebook.psy2notebook()
+
     def set_secure(self, wl):
         """策略如下：
         wl_history:
-        [0,0,0] -> pass                    | [0,0,1] -> secure=chipsInHand
-        [0,1,0] -> pass                    | [0,1,1] -> secure=chipsInHand
-        [1,0,0] -> pass                    | [1,0,1] -> secure=chipsInHand
-        [1,1,0] -> secure=cih_history[-2]  | [1,1,1] -> secure=cih_history[-2]
+        [0,0,0] -> pass                | [0,0,1] -> secure=chipsInHand
+        [0,1,0] -> pass                | [0,1,1] -> secure=chipsInHand
+        [1,0,0] -> pass                | [1,0,1] -> secure=chipsInHand
+        [1,1,0] -> secure=chipsInHand  | [1,1,1] -> secure=chipsInHand
         """
-        if all(self.notebook.wl_history[-2:]):  # == [1,1]:
-            self.secure = self.notebook.cih_history[-2]
-        elif wl:
+        if wl or all(self.notebook.wl_history[-2:]):
             self.secure = self.chipsInHand
-        else:
-            pass
 
     def set_winning(self, wl):
         """"""
@@ -242,6 +267,8 @@ class Player:
             self.winning = 0
         elif (wl, last_wl) == (0, 1):
             self.winning = -1
+        # 赢太久不好
+        self.winning = 1 if self.winning >= 10 else self.winning
 
     # 由dealer进行调用，向Player反馈输赢信息
     def dealer2player(self, wl):
@@ -267,20 +294,32 @@ class Dealer:  # 本类才是各类的核心
 
     def deal(self):
         self.dice.shake()  # 摇骰子,Dices变换outcome
-        self.player.guess()  # Player变换beton
-        self.player.evaluate()  # Player变换howmuch
-        if self.dice.outcome == self.player.beton:
-            # Win
-            self.player.chipsInHand += 2 * self.player.howmuch
-            wl = 1
-        else:
-            # lose
-            wl = 0
-        # 向player发送反馈
-        self.player.dealer2player(wl)  # wl -> win or lose
+        try:
+            self.player.evaluate()  # Player变换howmuch
+            self.player.guess()  # Player变换beton
+            if self.dice.outcome == self.player.beton:
+                # Win
+                self.player.chipsInHand += 2 * self.player.howmuch
+                wl = 1
+            else:
+                # lose
+                wl = 0
+            # 向player发送反馈
+            self.player.dealer2player(wl)  # wl -> win or lose
+        except PsychError:
+            self.player.calm()  # 心理干预启动后的应对措施
 
 
-@singleton
+class PsychError(Exception):
+    """心理干预异常"""
+
+    def __init__(self, text='Psychological Intervention Triggered.'):
+        self.text = text
+
+    def __str__(self):
+        return self.text
+
+
 class Casino:
     """循环过程在这里完成"""
 
@@ -294,4 +333,4 @@ class Casino:
                 break
 
 
-playN = Casino(300)  # 循环玩,默认300次
+playN = Casino(5000)  # 循环玩,默认300次
