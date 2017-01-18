@@ -17,13 +17,13 @@ lib = ['abp', 'abs', 'aby', 'adn', 'adz', 'aikb', 'akaiene',
        'osr', 'pgd', 'pjd', 'pppd', 'psd', 'rbd', 'rct', 'rdd',
        'rki', 'saba', 'sace', 'sama', 'sbmx', 'scop', 'sdde',
        'sddm', 'sdmt', 'sdmu', 'sdsi', 'sero', 'sga', 'sgv',
-       'shkd', 'sma', 'snis', 'sod', 'soe', 'sora', 'spb',
+       'shkd', 'sma', 'snis', 'sod', 'soe', 'sora', 'spb','ccx',
        'sprd', 'srs', 'sspd', 'ssr', 'star', 'supd', 'svdvd',
        'tbl', 'tek', 'tgav', 'tmvi', 'tppn', 'tyod', 'ufd',
-       'umd', 'upsm', 'ure', 'vagu', 'vdd', 'vec', 'vema',
-       'venu', 'vgd', 'voss', 'vrtm', 'wanz', 'wat', 'whx',
-       'wnz', 'wpc', 'wss', 'xrw', 'xvsr', 'ymn', 'yrh',
-       'yrz', 'ysn', 'yst', 'zex', 'zuko','supa']
+       'umd', 'upsm', 'ure', 'vagu', 'vdd', 'vec', 'vema','bwb',
+       'venu', 'vgd', 'voss', 'vrtm', 'wanz', 'wat', 'whx','ndr',
+       'wnz', 'wpc', 'wss', 'xrw', 'xvsr', 'ymn', 'yrh','wil',
+       'yrz', 'ysn', 'yst', 'zex', 'zuko','supa','xnd','srxv']
 
 lib = sorted(list(set(lib)))
 # print(lib)

@@ -23,13 +23,13 @@ print('wel:', wlcm)
 many, space = pp3.stat()
 print('邮件有%d封，占用%d字节' % (many, space))
 # 获取邮件大小的列表
-listemails = pp3.list(3)
-print(listemails)
+listemails = pp3.list()
+print('list()方法', listemails)
 # 获取指定的邮件内容 retr(which) -> 返回tuple(response,[line...],octet)
-content = pp3.retr(10)
-print('retr()方法：', content)
+content = pp3.retr(23)
+print('retr()方法：', content[1])
 # 取到content索引为1的元素并解码
-content_formed = [s.decode() for s in content[1]]
+# content_formed = [s.decode() for s in content[1]]
 # for s in content_formed:
 #     print(s)
 

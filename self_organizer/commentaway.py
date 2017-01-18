@@ -12,7 +12,7 @@ Version:1.0
 import os
 
 comment_sign = r'#'
-src = r'./fnameReg.py'
+src = r'../casino_local.py'
 dst = '-cc'.join(os.path.splitext(src))
 
 

@@ -214,12 +214,12 @@ class Player:
         # if not any(self.notebook.wl_history[-3:]):
         #     self.beton = random.choice([1, 2])
 
-        self.beton = random.choice([1, 2])  # 完全随机策略
+        # self.beton = random.choice([1, 2])  # 完全随机策略
 
     def evaluate(self):
         """负责出多少的策略"""
         if self.chipsInHand < self.secure:
-            self.howmuch *= 2
+            self.howmuch *= 4
         else:
             self.howmuch = self.__fibo(self.winning)
         # 形成最终howmuch前需要过一遍心理干预
@@ -236,7 +236,7 @@ class Player:
 
     def __psych(self):
         """心理干预策略"""
-        if self.chipsInHand < 2 * self.howmuch:
+        if self.chipsInHand < 10 * self.howmuch:
             """采取措施"""
             raise PsychError
 
@@ -253,8 +253,10 @@ class Player:
         [1,0,0] -> pass                | [1,0,1] -> secure=chipsInHand
         [1,1,0] -> secure=chipsInHand  | [1,1,1] -> secure=chipsInHand
         """
-        if wl or all(self.notebook.wl_history[-2:]):
-            self.secure = self.chipsInHand
+        # if wl or all(self.notebook.wl_history[-2:]):
+        #     self.secure = self.chipsInHand
+        if wl and self.notebook.wl_history[-1]:
+            self.secure = self.notebook.chipsLeft  # 策略同e60ef26
 
     def set_winning(self, wl):
         """"""
@@ -264,7 +266,7 @@ class Player:
         elif not (wl or last_wl):
             self.winning -= 1
         elif (wl, last_wl) == (1, 0):
-            self.winning = 0
+            self.winning = 1
         elif (wl, last_wl) == (0, 1):
             self.winning = -1
         # 赢太久不好
@@ -333,4 +335,4 @@ class Casino:
                 break
 
 
-playN = Casino(5000)  # 循环玩,默认300次
+playN = Casino(500)  # 循环玩,默认300次
