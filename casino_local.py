@@ -17,6 +17,11 @@ class Player
     实现玩游戏的方法
 class Dealer
     对游戏结果进行判断
+class Casino
+    循环引擎
+-------------------
+class PsychError(Exception)
+    心理作用
 """
 import random
 
@@ -39,7 +44,7 @@ def singleton(cls, *args, **kw):
 class Notebook:
     """设计成单例模式
     单行格式：
-    序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
+    序号 Player.beton howmuch |Dices骰子读数|大小|chipsInHand Player输赢 Player警戒线
     """
 
     def __init__(self, flag=True):
@@ -54,6 +59,11 @@ class Notebook:
         self.player_data = ''  # cih及输赢
         self.player_did = ''  # Player押什么以及押多少
         self.secure = 0  # 警戒线初始化，在输出前会被刷新
+        # howmuch成为notebook对象属性是为了，
+        # 当Player在改变howmuch后，依然可以在notebook中找回没有变动前的值，
+        # 在触发心理作用后，Player可以找回上一轮结束后的howmuch
+        # 需要更多次历史记录时，可建立history
+        self.howmuch = 1
         # 统计信息
         self.dice_counter = [0, 0, 0]  # 骰子计数器：统计豹，大，小的次数
         self.wl_counter = [0, 0]  # [输,赢]计数器
@@ -79,21 +89,26 @@ class Notebook:
         self.loop_counter += 1  # 次数计数器先跳字
         # 拆包data
         wl, cih, beton, howmuch, secure = data
+        # 分别处理各项数据
+        # 处理wl
         self.history_record(self.wl_history, wl)
-        self.history_record(self.cih_history, cih)
         if wl:
             self.wl_counter[1] += 1
         else:
             self.wl_counter[0] += 1
+        # 处理cih
+        self.history_record(self.cih_history, cih)
         self.chipsLeft = cih  # 手上剩余筹码
+        # 判断是否突破最高筹码
+        if cih > self.maxChip:
+            self.maxChip = cih
+        # 处理secure
         self.secure = secure
         # 格式化
         self.player_did = '押{}{:>3}单位'.format(['', '小', '大'][beton], howmuch)
         self.player_data = '{:<4} {:<4}'.format(cih, {True: 'WIN', False: 'LOSE'}[wl])
-        # 判断是否突破最高筹码
-        if cih > self.maxChip:
-            self.maxChip = cih
-        self.echo()  # 调用单行输出
+        # 调用单行输出
+        self.echo()
 
     # 输出一条信息
     def echo(self):
@@ -151,14 +166,15 @@ class Dices:
 
     def __init__(self):
         self.notebook = Notebook()  # 实例化笔记本单例
+        self.dice_set = (1, 2, 3, 4, 5, 6)
         self.outcome = 'unknown'  # 在shake()里调用notebook的方法记录
 
     def shake(self):
         """由Dealer调用，换一组新的骰子"""
-        dice_set = [1, 2, 3, 4, 5, 6]
-        dice1 = random.choice(dice_set)
-        dice2 = random.choice(dice_set)
-        dice3 = random.choice(dice_set)
+        # dice_set = [1, 2, 3, 4, 5, 6]
+        dice1 = random.choice(self.dice_set)
+        dice2 = random.choice(self.dice_set)
+        dice3 = random.choice(self.dice_set)
         setsum = dice1 + dice2 + dice3
         outcome = None  # 先初始化一下
 
@@ -238,7 +254,8 @@ class Player:
         """心理干预策略"""
         if self.chipsInHand < 10 * self.howmuch:
             """采取措施"""
-            raise PsychError
+            self.howmuch = self.notebook.howmuch  # 回到上一轮结束时的状态
+            raise PsychIntervention
 
     def calm(self):
         """心理干预启动后的反应策略"""
@@ -308,11 +325,11 @@ class Dealer:  # 本类才是各类的核心
                 wl = 0
             # 向player发送反馈
             self.player.dealer2player(wl)  # wl -> win or lose
-        except PsychError:
+        except PsychIntervention:
             self.player.calm()  # 心理干预启动后的应对措施
 
 
-class PsychError(Exception):
+class PsychIntervention(Exception):
     """心理干预异常"""
 
     def __init__(self, text='Psychological Intervention Triggered.'):
