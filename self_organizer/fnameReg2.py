@@ -59,9 +59,9 @@ class MyProcessor:
         """
         """
         if not os.path.exists(pathname):
-            return "路径不存在\nYour path doesn't exist."
+            raise FileNotFoundError(404, "the path doesn't exist", "use a real path to a directory.")
         elif not os.path.isdir(pathname):
-            return "目标必须是一个目录\nYour target should be a directory."
+            raise NotADirectoryError(4, "Your target should be a directory", 'use a real path to a directory.')
 
         from listlib import lib
         for sign in lib:
@@ -118,7 +118,7 @@ class MyProcessor:
 
 
 processor = MyProcessor()
-count = processor.tour(r'/Volumes/Seagate/Tencent/Dat/gext/pre/lakeeast',flag=True)
+count = processor.tour(r'/Volumes/Seagate/Tencent/Dat/gext/pre/lakeeast', flag=True)
 for t in processor.todo():
     t = (os.path.split(tt)[1] for tt in t)
     src, dst = t

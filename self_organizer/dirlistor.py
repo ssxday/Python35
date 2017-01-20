@@ -80,13 +80,11 @@ class MyDir:
             return False
 
     def __mywrite(self):
-        f = open('/users/AUG/desktop' + os.sep + self.__logfile, 'w')
-        f.write(self.data)
-        f.close()
+        with open('/users/AUG/desktop' + os.sep + self.__logfile, 'w') as f:
+            f.write(self.data)
 
     def __del__(self):
         print('Have done.')
-        pass
 
 
 # module time is already loaded at first.
@@ -95,7 +93,7 @@ target = r'/Volumes/Seagate/Tencent/Dat/gext/pre'
 # target = r'/Users/AUG/Desktop/tr'
 # target = r'./overall'
 # target = r'http://localhost'
-# target = r'/Library/WebServer/Documents'
+target = r'/Library/WebServer/Documents'
 t1 = time.time()
 my = MyDir(target)
 print(my.data)

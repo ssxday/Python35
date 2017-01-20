@@ -25,7 +25,7 @@ print(f.readline(3))  # readline(n)的n指的是取line的前n个字符！！！
 
 print(f.__next__())  # 返回自指针起的一行的内容，并将指针移动到下一行
 
-print(f.__next__())
+print(f.__next__())  # 注意！！！！f自身就是迭代器
 
 print(f.readline())  # 显示效果同f.__next__()
 
@@ -58,7 +58,7 @@ print('os.getcwd:',os.getcwd())
 # help(os.wait)
 
 # os.stat(path) 查看文件的的各项状态，类似右键属性
-st = os.stat('cliff.jpg')
+st = os.stat('./handle_image/cliff.jpg')
 print(st)  # 返回os.stat_result对象，可用数字索引或对象属性值访问
 print('文件权限模式：',st.st_mode)
 print('最后一次访问时间的时间戳',st.st_atime)
