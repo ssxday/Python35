@@ -55,7 +55,8 @@ class Notebook:
         self.wl_history = [0, ]  # 输赢结果的历史记录，初始化为0 -> False
         # 单轮游戏展示信息
         self.flag = flag  # 输出开关
-        self.dice_reading = ''  # 骰子读数及大小
+        self.dice_reading = ''  # 骰子读数
+        self.dice_sum = ''  # 骰子和的大小
         self.player_data = ''  # cih及输赢
         self.player_did = ''  # Player押什么以及押多少
         self.secure = 0  # 警戒线初始化，在输出前会被刷新
@@ -81,7 +82,8 @@ class Notebook:
     def dice2notebook(self, data):
         a, b, c, d = data
         self.history_record(self.dice_history, d)  # 对骰子结果进行记录
-        self.dice_reading = '|%d %d %d|%s|' % (a, b, c, ['T', 'S', 'B'][d])
+        self.dice_reading = '|{} {} {}|'.format(a, b, c)
+        self.dice_sum = '{}'.format(['T', 'S', 'B'][d])
         self.dice_counter[data[3]] += 1  # 骰子计数器+1
 
     # 由Player调用
@@ -92,16 +94,15 @@ class Notebook:
         # 分别处理各项数据
         # 处理wl
         self.history_record(self.wl_history, wl)
-        if wl:
-            self.wl_counter[1] += 1
-        else:
-            self.wl_counter[0] += 1
+        self.wl_counter[wl] += 1
         # 处理cih
         self.history_record(self.cih_history, cih)
         self.chipsLeft = cih  # 手上剩余筹码
         # 判断是否突破最高筹码
         if cih > self.maxChip:
             self.maxChip = cih
+        # 处理howmuch
+        self.howmuch = howmuch  # 为可能触发的psych()记录上轮的howmuch
         # 处理secure
         self.secure = secure
         # 格式化
@@ -113,13 +114,15 @@ class Notebook:
     # 输出一条信息
     def echo(self):
         # 格式：
-        # 序号|Player押什么押多少|Dices骰子读数|大小|chipsInHand|Player输赢|Player连赢|Player警戒线
-        reg = r'{:0>4d} {} {} {} 警戒线={}'
+        reg = r'{:0>4d} {player_did} {dice_reading}{dice_sum}| {player_data} 警戒线={secure}'
         if self.flag:  # 输出开关打开
             line = reg.format(
-                self.loop_counter, self.player_did,
-                self.dice_reading, self.player_data,
-                self.secure)
+                self.loop_counter,
+                player_did=self.player_did,
+                dice_reading=self.dice_reading,
+                dice_sum=self.dice_sum,
+                player_data=self.player_data,
+                secure=self.secure)
             print(line)
 
     # 由Player调用
@@ -171,18 +174,17 @@ class Dices:
 
     def shake(self):
         """由Dealer调用，换一组新的骰子"""
-        # dice_set = [1, 2, 3, 4, 5, 6]
         dice1 = random.choice(self.dice_set)
         dice2 = random.choice(self.dice_set)
         dice3 = random.choice(self.dice_set)
-        setsum = dice1 + dice2 + dice3
+        sum = dice1 + dice2 + dice3
         outcome = None  # 先初始化一下
 
         if dice1 == dice2 and dice2 == dice3:
             outcome = 0
-        elif 4 <= setsum <= 10:
+        elif 4 <= sum <= 10:
             outcome = 1
-        elif 11 <= setsum <= 17:
+        elif 11 <= sum <= 17:
             outcome = 2
         data = (dice1, dice2, dice3, outcome)
         self.outcome = outcome  # 刷新self.outcome
@@ -227,15 +229,15 @@ class Player:
             # 出错的原因是首次游戏并未产生最近揭晓的结果
             self.beton = random.choice([1, 2])
 
-        # if not any(self.notebook.wl_history[-3:]):
-        #     self.beton = random.choice([1, 2])
+            # if not any(self.notebook.wl_history[-3:]):
+            #     self.beton = random.choice([1, 2])
 
-        # self.beton = random.choice([1, 2])  # 完全随机策略
+            # self.beton = random.choice([1, 2])  # 完全随机策略
 
     def evaluate(self):
         """负责出多少的策略"""
         if self.chipsInHand < self.secure:
-            self.howmuch *= 4
+            self.howmuch *= 2
         else:
             self.howmuch = self.__fibo(self.winning)
         # 形成最终howmuch前需要过一遍心理干预
@@ -252,7 +254,7 @@ class Player:
 
     def __psych(self):
         """心理干预策略"""
-        if self.chipsInHand < 10 * self.howmuch:
+        if self.chipsInHand < 2 * self.howmuch:
             """采取措施"""
             self.howmuch = self.notebook.howmuch  # 回到上一轮结束时的状态
             raise PsychIntervention
