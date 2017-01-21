@@ -13,20 +13,27 @@ class MyError(Exception):
     def __str__(self):
         return self.tips
 
+
 class FuckError(Exception):
-    pass
+    def __init__(self,tips='dont do that'):
+        self.tips = tips
+
+    def __str__(self):
+        return self.tips
 
 # 手动抛出异常
 for i in range(5):
     try:
         if i == 2:
             raise FuckError
-    except FuckError:
-        print('Fuck!被捕获了')
-    else: print('motherfucker跑了')
+    except FuckError as e:
+        print('Fuck!被捕获了',e)
+    else:
+        print('motherfucker跑了')
     print(i)
 
 
 # assert语句
     # assert <条件>   条件为假时才抛出异常
     # except用AssertionError来捕获
+assert True
