@@ -118,7 +118,7 @@ class Post2Download(TaskTeam, Config):
     def pull_request(self, query):
         """发起请求，得到帖子内容并返回内容"""
         url = join(self.URL_ROOT, query)
-        # print('正在处理帖子{}'.format(url))
+        print('正在处理帖子{}'.format(url))  # 默认注释掉
         page = requests.get(url, headers=self.HEADERS)
         page.encoding = 'utf-8'  # 设置编码
         text = page.text
@@ -130,23 +130,23 @@ class Post2Download(TaskTeam, Config):
         # 定位到主体div
         the_div = soup.find('div', attrs={'class': "tpc_content", 'id': "read_tpc"})
         for sub_str_elem in the_div.strings:
-            if self.washing(sub_str_elem, *self.KEY_WORDS):
+            if self.washing(sub_str_elem, *self.KEY_WORDS):  # 选择的策略都在washing里
                 for sibling in sub_str_elem.next_siblings:
                     if sibling.name == 'a' and sibling['href'] == sibling.string:
                         if sibling.string not in self.tasks:
                             landing_url = str(sibling.string)  # 下载着陆页的url
-                            title = str(sub_str_elem)  # 去掉乱码
+                            title = self.name_quot(str(sub_str_elem))  # 去掉不能出现在文件名的符号
                             print(title, landing_url)
                             self.add_task((title, landing_url))
                         break
 
     @staticmethod
-    def name_trim(txt):
-        """已解决乱码问题，本方法并没有在使用
+    def name_quot(txt):
+        """把不适合做文件名的符号用-替换掉
         """
-        reg = re.compile(r'[a-zA-Z0-9]+')
-        cleaned = reg.findall(txt)
-        return '-'.join(cleaned)
+        reg = re.compile(r'[|?:*/\\]+')
+        cleaned = reg.sub('-', txt)
+        return cleaned
 
     @staticmethod
     def washing(sands, *golds):
@@ -162,7 +162,7 @@ class Post2Download(TaskTeam, Config):
         return False
 
 
-page2post = Page2Post(1)
+page2post = Page2Post(14)
 while page2post():
     query = page2post.take_task()
     post2download = Post2Download(query)  # 成功
