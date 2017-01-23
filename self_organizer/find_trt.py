@@ -16,14 +16,38 @@ import requests
 from html.parser import HTMLParser
 from os.path import join
 from bs4 import BeautifulSoup
+from random import choice
+import re
 
 
 class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
     KEY_WORDS = [
-        'hardcore', 'blacked'
+        'hardcore', 'blacked', 'sex', 'lxv'
     ]
+    USER_AGENTS = [
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
+        'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
+        'Opera/9.25 (Windows NT 5.1; U; en)',
+        'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
+        'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
+        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
+        'Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9',
+        "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Ubuntu/11.04 Chromium/16.0.912.77 \
+        Chrome/16.0.912.77 Safari/535.7",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:50.0) Gecko/20100101 Firefox/50.0"
+        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
+    ]
+    HEADERS = {
+        'User-Agent': choice(USER_AGENTS),
+        'Accept': 'text/html,application/xhtml+xml,application/xml,application/force-download/;q=0.9,*/*;q=0.8',
+        'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
+        'Accept-Encoding': 'gzip, deflate',
+        'Accept-Language': 'zh-CN,zh;q=0.8,en-US;q=0.5,en;q=0.3',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded'
+    }
 
 
 class TaskTeam:
@@ -74,18 +98,19 @@ class Page2Post(TaskTeam, Config):
         url = join(self.URL_ROOT, query_string)
         # print(url)
         page = requests.get(url)
+        page.encoding = 'utf-8'
         data = page.text
         self.parser.feed(data)  # 把当前页的所有帖子地址加入到task队列
         # 把task队列搬到当前对象的__task，已继承队列属性
         self.tasks.extend(self.parser())
 
 
-class Post2download(TaskTeam, Config):
+class Post2Download(TaskTeam, Config):
     """"""
 
     def __init__(self, query):
         """query从Page2Post的队列中取"""
-        super(Post2download, self).__init__()
+        super(Post2Download, self).__init__()
         text = self.pull_request(query)
         # 分析帖子text
         self.scan_post(text)
@@ -94,7 +119,8 @@ class Post2download(TaskTeam, Config):
         """发起请求，得到帖子内容并返回内容"""
         url = join(self.URL_ROOT, query)
         print(url)
-        page = requests.get(url)
+        page = requests.get(url, headers=self.HEADERS)
+        page.encoding = 'utf-8'  # 设置编码
         text = page.text
         return text
 
@@ -104,14 +130,23 @@ class Post2download(TaskTeam, Config):
         # 定位到主体div
         the_div = soup.find('div', attrs={'class': "tpc_content", 'id': "read_tpc"})
         for sub_str_elem in the_div.strings:
-            # if 'hardcore' in str(sub_str_elem).lower():  # 要被替代
             if self.washing(sub_str_elem, *self.KEY_WORDS):
                 for sibling in sub_str_elem.next_siblings:
                     if sibling.name == 'a' and sibling['href'] == sibling.string:
                         if sibling.string not in self.tasks:
-                            print(sub_str_elem.__str__(), sibling.string)
-                            self.add_task(str(sibling.string))
+                            landing_url = str(sibling.string)  # 下载着陆页的url
+                            title = str(sub_str_elem)  # 去掉乱码
+                            print(title, landing_url)
+                            self.add_task((title, landing_url))
                         break
+
+    @staticmethod
+    def name_trim(txt):
+        """已解决乱码问题，本方法并没有在使用
+        """
+        reg = re.compile(r'[a-zA-Z0-9]+')
+        cleaned = reg.findall(txt)
+        return '-'.join(cleaned)
 
     @staticmethod
     def washing(sands, *golds):
@@ -127,11 +162,30 @@ class Post2download(TaskTeam, Config):
         return False
 
 
-pg = Page2Post()
+# page2post = Page2Post()
+# query = page2post.take_task()
+# q1 = page2post.take_task()
+# print(query)
+# print(q1)
 
-'http://km.1024ky.trade/pw/htm_data/3/1701/527671.html'
+post2download = Post2Download(r'htm_data/3/1701/516583.html')  # 成功
 
 
-class Downloader:
+class Downloader(Config):
     def download(self):
         """进入download页面拿到目标地址然后下载资源到本地"""
+        url = 'http://www2.j32048downhostup9s.info/freeone/down.php'
+        data = {
+            'type': 'torrent',
+            'name': 'OJGSOWr',
+            'id': 'OJGSOWr'
+        }
+        resp = requests.post(url, data=data, headers=self.HEADERS)
+        print(1,resp.status_code)
+        content = resp.content
+        print(2,resp.status_code)
+        with open('/users/aug/desktop/testhaha.torrent','wb') as f:
+            f.write(content)
+
+# d = Downloader()  # 并不成功
+# d.download()
