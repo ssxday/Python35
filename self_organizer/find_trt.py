@@ -24,7 +24,7 @@ class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
     KEY_WORDS = [
-        'hardcore', 'blacked', 'sex', 'lxv'
+        'blacked'
     ]
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -118,15 +118,15 @@ class Post2Download(TaskTeam, Config):
     def pull_request(self, query):
         """发起请求，得到帖子内容并返回内容"""
         url = join(self.URL_ROOT, query)
-        print(url)
+        # print('正在处理帖子{}'.format(url))
         page = requests.get(url, headers=self.HEADERS)
         page.encoding = 'utf-8'  # 设置编码
         text = page.text
         return text
 
-    def scan_post(self, data):
+    def scan_post(self, source_code):
         """从post定位到download页面"""
-        soup = BeautifulSoup(data, 'lxml')
+        soup = BeautifulSoup(source_code, 'lxml')
         # 定位到主体div
         the_div = soup.find('div', attrs={'class': "tpc_content", 'id': "read_tpc"})
         for sub_str_elem in the_div.strings:
@@ -162,15 +162,13 @@ class Post2Download(TaskTeam, Config):
         return False
 
 
-# page2post = Page2Post()
-# query = page2post.take_task()
-# q1 = page2post.take_task()
-# print(query)
-# print(q1)
-
-post2download = Post2Download(r'htm_data/3/1701/516583.html')  # 成功
+page2post = Page2Post(1)
+while page2post():
+    query = page2post.take_task()
+    post2download = Post2Download(query)  # 成功
 
 
+# 以下为试验区
 class Downloader(Config):
     def download(self):
         """进入download页面拿到目标地址然后下载资源到本地"""
