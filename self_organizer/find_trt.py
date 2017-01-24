@@ -18,6 +18,7 @@ from os.path import join
 from bs4 import BeautifulSoup
 from random import choice
 import re
+import xlwt
 
 
 class Config:
@@ -76,9 +77,9 @@ class Page2PostParser(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         if tag == 'a' and len(attrs) == 2:
-            query = dict(attrs)
-            if query.get('href', '').startswith(r'htm_data'):
-                self.__tasks.append(query.get('href'))  # 只负责添加
+            attrs_in_dict = dict(attrs)
+            if attrs_in_dict.get('href', '').startswith(r'htm_data'):
+                self.__tasks.append(attrs_in_dict.get('href'))  # 只负责添加
 
     def __call__(self, *args, **kwargs):
         results = self.__tasks.copy()  # 一定要导出一份copy再clear
@@ -114,7 +115,7 @@ class Page2Post(TaskTeam, Config):
         query_string = r'thread.php?fid=3&page={page}'.format(page=which_page)
         url = join(self.URL_ROOT, query_string)
         # print(url)
-        page = requests.get(url)
+        page = requests.get(url, headers=self.HEADERS)
         page.encoding = 'utf-8'
         source_code = page.text
         return source_code
@@ -128,17 +129,22 @@ class Page2Post(TaskTeam, Config):
 class Post2Download(TaskTeam, Config):
     """"""
 
-    def __init__(self, query):
+    def __init__(self, query, showall=True):
         """query从Page2Post的队列中取"""
         super(Post2Download, self).__init__()
-        text = self.pull_request(query)
-        # 分析帖子text
-        self.scan_post(text)
+        # 是否每一步都要打印出来
+        self.show_all = showall
+        # 拼接帖子链接
+        self.url = join(self.URL_ROOT, query)
+        # 获取帖子的源代码
+        source_code = self.pull_request(self.url)
+        # 扫描分析帖子源代码
+        self.scan_post(source_code)
 
-    def pull_request(self, query):
+    def pull_request(self, url):
         """发起请求，得到帖子内容并返回内容"""
-        url = join(self.URL_ROOT, query)
-        print('正在处理帖子{}'.format(url))  # 默认注释掉
+        if self.show_all:
+            print('正在处理帖子{}'.format(url))
         page = requests.get(url, headers=self.HEADERS)
         page.encoding = 'utf-8'  # 设置编码
         text = page.text
@@ -156,7 +162,12 @@ class Post2Download(TaskTeam, Config):
                         if sibling.string not in self.tasks:
                             landing_url = str(sibling.string)  # 下载着陆页的url
                             title = self.name_quot(str(sub_str_elem))  # 去掉不能出现在文件名的符号
-                            print(title, landing_url)
+                            # 控制打印显示
+                            if not self.show_all:
+                                print('当前处理帖子{}'.format(self.url))
+                                print(title, landing_url, '\n')
+                            else:
+                                print(title, landing_url)
                             self.add_task((title, landing_url))
                         break
 
@@ -182,10 +193,39 @@ class Post2Download(TaskTeam, Config):
         return False
 
 
-page2post = Page2Post(5, 6)
-while page2post():
-    query = page2post.take_task()
-    post2download = Post2Download(query)  # 成功
+class Start:
+    """协调者"""
+
+    def __init__(self, from_page=5, to_page=None, showall=False):
+        # 实例化同时把指定页码的所有帖子链接全部存进自身队列
+        self.page2post = Page2Post(from_page, to_page)
+        self.to_xls_data = []  # 数据为items()格式
+        self.do(showall)
+
+    def do(self, showall):
+        while self.page2post():
+            query = self.page2post.take_task()
+            # 完成一个帖子的检查后，要把收集到的数据通过调用自身的方法传递出来
+            post2download = Post2Download(query, showall)  # 成功
+            self.to_xls_data.extend(post2download())
+        print('\n扫描完成！正在写入Excel文件...')
+        self.to_xls(self.to_xls_data)
+        print('Excel文件写入成功.')
+
+    @staticmethod
+    def to_xls(data=list()):
+        workbook = xlwt.Workbook(encoding='utf-8')
+        worksheet = workbook.add_sheet('sheet1')
+        # 遍历to_xls_data
+        for r in range(data.__len__()):  # 行
+            for c in range(2):  # 列
+                worksheet.write(r, c, data[r][c])
+        workbook.save('/Users/aug/Desktop/essence.xls')
+
+
+############################
+Start(14, showall=True)  #
+###########################
 
 
 # 以下为试验区
