@@ -91,15 +91,21 @@ class Page2Post(TaskTeam, Config):
         super(Page2Post, self).__init__()
         self.start_page = start_page
         self.parser = Page2PostParser()
-        self.list_post()
+        page = self.pull_request()
+        self.scan_page(page)
 
-    def list_post(self):
+    def pull_request(self):
+        """"""
         query_string = r'thread.php?fid=3&page={page}'.format(page=self.start_page)
         url = join(self.URL_ROOT, query_string)
         # print(url)
         page = requests.get(url)
         page.encoding = 'utf-8'
-        data = page.text
+        source_code = page.text
+        return source_code
+
+    def scan_page(self, data):
+
         self.parser.feed(data)  # 把当前页的所有帖子地址加入到task队列
         # 把task队列搬到当前对象的__task，已继承队列属性
         self.tasks.extend(self.parser())
@@ -179,10 +185,10 @@ class Downloader(Config):
             'id': 'OJGSOWr'
         }
         resp = requests.post(url, data=data, headers=self.HEADERS)
-        print(1,resp.status_code)
+        print(1, resp.status_code)
         content = resp.content
-        print(2,resp.status_code)
-        with open('/users/aug/desktop/testhaha.torrent','wb') as f:
+        print(2, resp.status_code)
+        with open('/users/aug/desktop/testhaha.torrent', 'wb') as f:
             f.write(content)
 
 # d = Downloader()  # 并不成功
