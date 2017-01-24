@@ -81,22 +81,37 @@ class Page2PostParser(HTMLParser):
                 self.__tasks.append(query.get('href'))  # 只负责添加
 
     def __call__(self, *args, **kwargs):
-        return self.__tasks
+        results = self.__tasks.copy()  # 一定要导出一份copy再clear
+        self.__tasks.clear()  # 应对Page2Post.scan_page()中的extend()不要重复添加
+        return results
 
 
 class Page2Post(TaskTeam, Config):
     """本类的实例"""
 
-    def __init__(self, start_page=5):
+    def __init__(self, from_page=5, to_page=None):
         super(Page2Post, self).__init__()
-        self.start_page = start_page
         self.parser = Page2PostParser()
-        page = self.pull_request()
-        self.scan_page(page)
+        self.engine(from_page, to_page)
 
-    def pull_request(self):
+    def engine(self, from_page, to_page):
         """"""
-        query_string = r'thread.php?fid=3&page={page}'.format(page=self.start_page)
+        if to_page is None or from_page == to_page:
+            to_page = from_page
+            step = 1
+        else:
+            if from_page > to_page:
+                step = -1
+            else:
+                step = 1
+
+        for page_no in range(from_page, to_page + step, step):
+            pagecode = self.pull_request(page_no)
+            self.scan_page(pagecode)
+
+    def pull_request(self, which_page):
+        """"""
+        query_string = r'thread.php?fid=3&page={page}'.format(page=which_page)
         url = join(self.URL_ROOT, query_string)
         # print(url)
         page = requests.get(url)
@@ -105,7 +120,6 @@ class Page2Post(TaskTeam, Config):
         return source_code
 
     def scan_page(self, data):
-
         self.parser.feed(data)  # 把当前页的所有帖子地址加入到task队列
         # 把task队列搬到当前对象的__task，已继承队列属性
         self.tasks.extend(self.parser())
@@ -168,7 +182,7 @@ class Post2Download(TaskTeam, Config):
         return False
 
 
-page2post = Page2Post(14)
+page2post = Page2Post(5, 6)
 while page2post():
     query = page2post.take_task()
     post2download = Post2Download(query)  # 成功
