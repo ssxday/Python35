@@ -16,6 +16,7 @@ Description:本模块为批量规范化文件名而设计
 """
 import re
 import os
+from listlib import lib
 
 
 class TodoList:
@@ -63,7 +64,6 @@ class MyProcessor:
         elif not os.path.isdir(pathname):
             raise NotADirectoryError(4, "Your target should be a directory", 'use a real path to a directory.')
 
-        from listlib import lib
         for sign in lib:
             self.__engine(pathname, sign, flag)
         return self.loop
@@ -71,24 +71,25 @@ class MyProcessor:
     def __engine(self, pathname='', sign='', flag=False):
         files = os.listdir(pathname)
         for f in files:
-            if not (f.startswith('.') or f.startswith('__')):
-                src = os.path.join(pathname, f)
-                if os.path.isfile(src) and sign.lower() in f.lower():
-                    dst = os.path.join(pathname, self.__reg(f, sign))
-                    if src == dst:
+            if not (f.startswith('.') or f.startswith('_')):
+                srcing = os.path.join(pathname, f)
+                if os.path.isfile(srcing) and sign.lower() in f.lower():
+                    dsting = os.path.join(pathname, self.__reg(f, sign))
+                    if srcing == dsting:
                         continue
-                    if os.path.exists(dst):
-                        dst = os.path.splitext(dst)[0] + ' (' + str(self.loop) + ')' \
-                              + os.path.splitext(dst)[1]
+                    if os.path.exists(dsting):
+                        dsting = os.path.splitext(dsting)[0] + ' (' + str(self.loop) + ')' \
+                              + os.path.splitext(dsting)[1]
                     # 加入任务列表
-                    self.todo.add_todo((src, dst))
+                    self.todo.add_todo((srcing, dsting))
                     self.loop += 1
-                elif os.path.isdir(src) and flag:
-                    self.__engine(src, sign, flag)
+                elif os.path.isdir(srcing) and flag:
+                    self.__engine(srcing, sign, flag)
 
         return self.loop
 
-    def __reg(self, filename, symbol=''):
+    @staticmethod
+    def __reg(filename, symbol=''):
         """"""
         if symbol.lower() in filename.lower():
             pat_fan = '[a-z]*' + symbol + '[a-z]*'
@@ -118,7 +119,7 @@ class MyProcessor:
 
 
 processor = MyProcessor()
-count = processor.tour(r'/Volumes/Seagate/Tencent/Dat/gext/pre/lakeeast', flag=True)
+count = processor.tour(r'/users/aug/lakessd', flag=True)
 for t in processor.todo():
     t = (os.path.split(tt)[1] for tt in t)
     src, dst = t
