@@ -223,9 +223,9 @@ class Start:
         workbook.save('/Users/aug/Desktop/essence.xls')
 
 
-############################
-Start(14, showall=True)  #
-###########################
+###############################
+Start(1, 3, showall=True)  #
+###############################
 
 
 # 以下为试验区
