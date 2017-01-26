@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
+import poplib  # 这是个模块
+from common_use import Constant
 server = 'pop.163.com'
 username = 'letsp2p@163.com'
-password = 'star1186'
-import poplib  # 这是个模块
+password = Constant.PASS
 
 # help(poplib.POP3.noop)
 # 实例化POP3类

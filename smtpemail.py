@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
+from common_use import Constant
 myserver = 'smtp.163.com'
 username = 'letsp2p@163.com'
-mypswd = 'star1186'
+mypswd = Constant.PASS
 toaddr = '2905911570@qq.com'  # 收件人
 data = 'Testing mail sent via Python.'  # 邮件内容
 import smtplib
