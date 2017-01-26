@@ -14,7 +14,7 @@ Description:本模块为批量规范化文件名而设计
 """
 import re
 import os
-from listlib import lib
+from common_use import Constant
 
 
 class TodoList:
@@ -52,7 +52,7 @@ class TodoList:
 class MyProcessor:
     def __init__(self):
         self.loop = 0
-        self.re_before_hao = re.compile(r'.*[a-z]{2,}(?=[- _]?\d{3,5}.*)', re.I)
+        self.re_before_hao = re.compile(r'.*?[a-z]{2,}(?=[- _]?\d{3,5}.*)', re.I)  # *?表示最短匹配
         self.re_fan = re.compile(r'[a-z]{2,}$', re.I)
         self.todo = TodoList()
 
@@ -92,7 +92,7 @@ class MyProcessor:
             fan = self.re_fan.search(before_hao_string)
             if fan:
                 fan_string = fan.group()  # 现在找到了关键的fan_string，跟lib对照
-                if fan_string.lower() not in lib:
+                if fan_string.lower() not in Constant.SYMBOLS:
                     return filename
                 # 已经确定了fan，接下来要把hao连接上
                 start_posi = filename.find(fan_string)
@@ -128,8 +128,9 @@ def truncate(txt='', max_length=30, abbreviation='...'):
         truncated = head + body + abbreviation + tail
         return truncated
 
+
 processor = MyProcessor()
-count = processor.start(r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast', flag=True)
+count = processor.start(Constant.SEAGATE, flag=True)
 if count:
     for n, t in enumerate(processor.todo(), start=1):
         t = (os.path.split(tt)[1] for tt in t)
