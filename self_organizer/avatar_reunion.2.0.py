@@ -17,6 +17,7 @@ import urllib.request as uq
 import requests
 import html.parser
 import threading
+from common_use import Constant
 
 
 # 单例装饰器
@@ -198,10 +199,9 @@ class Match:
     def __init__(self):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine(r'/Volumes/toshiba/Tencent/Dat/gext/pre/lake/人物')  # 自动运行engine()
-        # r'/Volumes/Seagate/Tencent/Dat/gext/pre/LakeEast'
+        self.engine(Constant.THETWO)  # 自动运行engine()
 
-    def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
+    def engine(self, pathname=r''):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
         if not os.path.isdir(pathname):
             exit('路径不存在或路径并非是一个目录.')
@@ -267,7 +267,8 @@ class Match:
         else:  # 相对应的文件存在时
             pass
 
-    def exceptions(self, filename):
+    @staticmethod
+    def exceptions(filename):
         """以下任意一项为True，则返回True"""
         # filename以.或_开头
         if filename.startswith('.') or filename.startswith('_'):
@@ -282,7 +283,8 @@ class Match:
                 return True
         return False
 
-    def mark_out(self, text):
+    @staticmethod
+    def mark_out(text):
         """在text中剥离出标志"""
         ptn = r'^[a-z]{2,}-\d{3,}'  # 标志的正则
         try:
