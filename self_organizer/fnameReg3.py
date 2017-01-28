@@ -52,11 +52,11 @@ class TodoList:
 class MyProcessor:
     def __init__(self):
         self.loop = 0
-        self.re_before_hao = re.compile(r'.*?[a-z]{2,}(?=[- _]?\d{3,5}.*)', re.I)  # *?表示最短匹配
-        self.re_fan = re.compile(r'[a-z]{2,}$', re.I)
+        self.re_before_hao = re.compile(r'.*?[a-z]{2,5}(?=[- _]?\d{3,5}.*)', re.I)  # *?表示最短匹配
+        self.re_fan = re.compile(r'[a-z]{2,5}$', re.I)
         self.todo = TodoList()
 
-    def start(self, pathname=r'/Users/AUG/Desktop/overall', flag=False):
+    def start(self, pathname, flag=False):
         """flag:是否要遍历子目录
         """
         if not os.path.exists(pathname):
@@ -72,9 +72,18 @@ class MyProcessor:
             if not (f.startswith('.') or f.startswith('_')):
                 srcing = os.path.join(pathname, f)
                 if os.path.isfile(srcing):
-                    dsting = os.path.join(pathname, self.__reg(f))
+                    reg_f = self.__reg(f)  # 预期的新文件名
+                    dsting = os.path.join(pathname, reg_f)
                     if srcing == dsting:
                         continue
+                    if len(srcing) > len(dsting):  # 有可能鉴别出错，需要人工处理的条件
+                        print('{} @@ {}'.format(srcing, dsting))
+                        fan_hao = re.search(r'[a-z]{2,5}-\d{3,5}', reg_f, re.I).group()  # 必定存在
+                        new_f = fan_hao + f
+                        dst_join = os.path.join(pathname, new_f)
+                        # os.rename(srcing, dst_join)
+                        print('{} @@@@ {}'.format(srcing, dst_join))
+                        continue  # 不同的处理逻辑，一定要continue
                     if os.path.exists(dsting):
                         dsting = os.path.splitext(dsting)[0] + ' (' + str(self.loop) + ')' \
                                  + os.path.splitext(dsting)[1]
@@ -130,12 +139,12 @@ def truncate(txt='', max_length=30, abbreviation='...'):
 
 
 processor = MyProcessor()
-count = processor.start(Constant.SEAGATE, flag=True)
+count = processor.start(Constant.THETWO, flag=True)
 if count:
     for n, t in enumerate(processor.todo(), start=1):
         t = (os.path.split(tt)[1] for tt in t)
         src, dst = t
-        print('{:<3} {:<35} => {}'.format(n, truncate(src), truncate(dst)))
+        print('{:<4} {:<35} => {}'.format(n, truncate(src), truncate(dst)))
     print('共计%d项任务'.center(50, '*') % count)
     confirm = input('确认以上任务吗？\n'
                     '\t取消任务 - 直接回车\n'
