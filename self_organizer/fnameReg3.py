@@ -50,20 +50,21 @@ class TodoList:
 
 
 class MyProcessor:
-    def __init__(self):
+    def __init__(self, root_dir):
         self.loop = 0
+        self.root_dir = root_dir
         self.re_before_hao = re.compile(r'.*?[a-z]{2,5}(?=[- _]?\d{3,5}.*)', re.I)  # *?表示最短匹配
         self.re_fan = re.compile(r'[a-z]{2,5}$', re.I)
         self.todo = TodoList()
 
-    def start(self, pathname, flag=False):
+    def start(self, flag=False):
         """flag:是否要遍历子目录
         """
-        if not os.path.exists(pathname):
+        if not os.path.exists(self.root_dir):
             raise FileNotFoundError(404, "the path doesn't exist", "use a real path to a directory.")
-        elif not os.path.isdir(pathname):
+        elif not os.path.isdir(self.root_dir):
             raise NotADirectoryError(4, "Your target should be a directory", 'use a real path to a directory.')
-        self.__engine(pathname, flag)
+        self.__engine(self.root_dir, flag)
         return self.loop
 
     def __engine(self, pathname='', flag=False):
@@ -76,7 +77,7 @@ class MyProcessor:
                     dsting = os.path.join(pathname, reg_f)
                     if srcing == dsting:
                         continue
-                    if len(srcing) > len(dsting):  # 有可能鉴别出错，需要人工处理的条件
+                    if len(srcing) > 1.1 * len(dsting):  # 有可能鉴别出错，需要人工处理的条件
                         print('{} @@ {}'.format(srcing, dsting))
                         fan_hao = re.search(r'[a-z]{2,5}-\d{3,5}', reg_f, re.I).group()  # 必定存在
                         new_f = fan_hao + f
@@ -138,8 +139,8 @@ def truncate(txt='', max_length=30, abbreviation='...'):
         return truncated
 
 
-processor = MyProcessor()
-count = processor.start(Constant.THETWO, flag=True)
+processor = MyProcessor(Constant.THEONE)
+count = processor.start(flag=True)  # 默认False不遍历子目录
 if count:
     for n, t in enumerate(processor.todo(), start=1):
         t = (os.path.split(tt)[1] for tt in t)
