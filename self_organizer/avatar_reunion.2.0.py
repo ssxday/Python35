@@ -196,10 +196,10 @@ class Match:
     VIDEO = ['.mp4', '.avi', '.rmvb', '.mkv', '.wmv']
     IMAGE = ['.jpg', '.jpeg', '.gif', '.bmp', '.png']
 
-    def __init__(self):
+    def __init__(self, path):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine(Constant.THETWO)  # 自动运行engine()
+        self.engine(path)  # 自动运行engine()
 
     def engine(self, pathname=r''):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
@@ -276,7 +276,7 @@ class Match:
         # filename里有rids出现
         rids = [
             'cari', '1pon', 'paco', 'heyzo', 'mywife', 'luxu', 'dic',
-            'gkd', 'hmpd', 'lxvs', 'nacr'
+            'gkd', 'hmpd', 'nacr'
         ]
         for r in rids:
             if r in filename.lower():
@@ -294,10 +294,10 @@ class Match:
             return text  # 注意，如果找不到合格的标志，则返回原本的text
 
 
-fc = Match()  # 结果就是最终生成TodoList
+fc = Match(Constant.THETWO)  # 结果就是最终生成TodoList
 print('查看任务列表：')
-for task, dst in fc.todo():
-    print('{:\t<8} =>\t{}'.format(task, dst))
+for t, d in fc.todo():
+    print('{:\t<8} =>\t{}'.format(t, d))
 print('任务个数共计:', fc.todo.__len__())
 
 print('下面依次处理各项任务'.center(50, '*'))
