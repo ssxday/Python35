@@ -30,7 +30,10 @@ class TodoList:
         self.__todo = []
 
     def add_todo(self, task):
-        self.__todo.append(task)  # 没有上限
+        s, d = task
+        if d in self.__todo.__repr__():
+            d = '({})'.format(self.__todo.__len__()).join(os.path.splitext(d))
+        self.__todo.append((s, d))  # 没有上限
 
     def take_task(self):
         if not self.is_empty():
@@ -86,8 +89,8 @@ class MyProcessor:
                         print('{} @@@@ {}'.format(srcing, dst_join))
                         continue  # 不同的处理逻辑，一定要continue
                     if os.path.exists(dsting):
-                        dsting = os.path.splitext(dsting)[0] + ' (' + str(self.loop) + ')' \
-                                 + os.path.splitext(dsting)[1]
+                        if srcing.lower() != dsting.lower():
+                            dsting = '({})'.format(self.loop).join(os.path.splitext(dsting))
                     # 加入任务列表
                     self.todo.add_todo((srcing, dsting))
                     self.loop += 1
@@ -109,15 +112,24 @@ class MyProcessor:
                 if start_posi < 0:  # 没找到是不可能的，但是为了逻辑严谨
                     return filename
                 hao_start_posi = start_posi + len(fan_string)
-                hao_and_after = filename[hao_start_posi:]
-                if hao_and_after.startswith('-'):
-                    return fan_string.upper() + hao_and_after
-                else:
-                    return fan_string.upper() + '-' + hao_and_after.strip()
+                hao_and_after = filename[hao_start_posi:]  # 有可能以空格下划线或横杠开头
+                real_hao_posi = self.where_first_digit(hao_and_after)
+                # 从第一个数字开始
+                hao_and_after = hao_and_after[real_hao_posi:]
+                return fan_string.upper() + '-' + hao_and_after.strip()
             else:
                 return filename
         else:
             return filename
+
+    @staticmethod
+    def where_first_digit(txt):
+        """取到字符串中第一个数字的索引"""
+        i = 0
+        for letter in txt:
+            if letter.isdigit():
+                return i
+            i += 1
 
     def __del__(self):
         pass
@@ -139,7 +151,7 @@ def truncate(txt='', max_length=30, abbreviation='...'):
         return truncated
 
 
-processor = MyProcessor(Constant.THEONE)
+processor = MyProcessor(Constant.LAKESSD)
 count = processor.start(flag=True)  # 默认False不遍历子目录
 if count:
     for n, t in enumerate(processor.todo(), start=1):
@@ -175,4 +187,5 @@ if count:
     else:
         print('\n任务已取消 - Mission Abort')
 else:
-    print(' 太好了！所有文件名都很整齐，无需处理 '.center(50, '*'))
+    root_d = os.path.split(processor.root_dir)[1]
+    print(' 太好了！目录{}中所有文件名都已标准化，无需处理 '.format(root_d).center(50, '*'))
