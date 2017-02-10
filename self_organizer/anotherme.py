@@ -16,6 +16,7 @@ import re
 
 class Gothrough:
     re_mark = re.compile(r'[a-z]{2,5}-\d{3,5}', re.I)
+    ACCEPT = ['.mp4', '.avi', '.rmvb', '.mkv', '.wmv']
 
     def __init__(self, name, dir_path):
         self.pool = dict()
@@ -29,6 +30,8 @@ class Gothrough:
             if os.path.isdir(path):
                 self.engine(path)
             elif os.path.isfile(path):
+                if os.path.splitext(f)[1] not in self.ACCEPT:
+                    continue
                 data = self.essence(f), [path]  # 数据格式
                 self.add_data(data)  # 设计专门的添加方法
 
@@ -72,8 +75,8 @@ class Compare:
 
 
 cmp_data = {
-    'No.1': Constant.THEONE,
-    'No.2': Constant.THETWO
+    'No.1': Constant.SIMU,
+    'No.2': Constant.LAKESSD
 }
 cmpr = Compare(cmp_data)
 cmpr.common()
