@@ -5,11 +5,11 @@ Copyright statement and purpose...
 -----------------------------------------------------
 File Name:
 Author:
-Version:
+Version:2.0
 Description:分三个步骤
 1、page -> post
-2、post -> download
-3、download -> torrent暂时存放在文件中
+2、post -> download 加入多线程
+3、download -> torrent暂时存放在文件中(暂未开通)
 
 """
 import requests
@@ -19,13 +19,14 @@ from bs4 import BeautifulSoup
 from random import choice
 import re
 import xlwt
+import threading
 
 
 class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
     KEY_WORDS = [
-        'blacked'
+        'manon', 'anniversary'
     ]
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -49,6 +50,12 @@ class Config:
         'Connection': 'keep-alive',
         'Content-Type': 'application/x-www-form-urlencoded'
     }
+
+
+class Condit:
+    AND = ''
+    OR = ''
+    NOT = ''
 
 
 class TaskTeam:
@@ -107,7 +114,11 @@ class Page2Post(TaskTeam, Config):
                 step = 1
 
         for page_no in range(from_page, to_page + step, step):
-            pagecode = self.pull_request(page_no)
+            try:
+                pagecode = self.pull_request(page_no)
+            except ConnectionResetError as e:
+                print('{} @Page2Post:'.format(e.strerror))
+                continue
             self.scan_page(pagecode)
 
     def pull_request(self, which_page):
@@ -136,15 +147,17 @@ class Post2Download(TaskTeam, Config):
         self.show_all = showall
         # 拼接帖子链接
         self.url = join(self.URL_ROOT, query)
-        # 获取帖子的源代码
-        source_code = self.pull_request(self.url)
-        # 扫描分析帖子源代码
-        self.scan_post(source_code)
+        try:  # 获取帖子的源代码
+            source_code = self.pull_request(self.url)
+            # 扫描分析帖子源代码
+            self.scan_post(source_code)
+        except ConnectionResetError as e:
+            print('{} @Post2Download'.format(e.strerror))
 
     def pull_request(self, url):
         """发起请求，得到帖子内容并返回内容"""
         if self.show_all:
-            print('正在处理帖子{}'.format(url))
+            print('正在处理帖子 {}'.format(url))
         page = requests.get(url, headers=self.HEADERS)
         page.encoding = 'utf-8'  # 设置编码
         text = page.text
@@ -164,7 +177,7 @@ class Post2Download(TaskTeam, Config):
                             title = self.name_quot(str(sub_str_elem))  # 去掉不能出现在文件名的符号
                             # 控制打印显示
                             if not self.show_all:
-                                print('当前处理帖子{}'.format(self.url))
+                                print('当前处理帖子 {}'.format(self.url))
                                 print(title, landing_url, '\n')
                             else:
                                 print(title, landing_url)
@@ -175,7 +188,7 @@ class Post2Download(TaskTeam, Config):
     def name_quot(txt):
         """把不适合做文件名的符号用-替换掉
         """
-        reg = re.compile(r'[|?:*/\\]+')
+        reg = re.compile(r'[｜|?？，、:*/\\]+')
         cleaned = reg.sub('-', txt)
         return cleaned
 
@@ -192,25 +205,49 @@ class Post2Download(TaskTeam, Config):
                 return True
         return False
 
+    @staticmethod
+    def conditions(sand=''):
+        """washing的替换"""
+        sand = sand.lower()
+        if Condit.NOT in sand:
+            return False
+        else:
+            for o in Condit.OR:
+                if o in sand:
+                    return True
+                else:
+                    return False
+            return True
+
 
 class Start:
     """协调者"""
+    thrds = []  # 线程池
 
     def __init__(self, from_page=5, to_page=None, showall=False):
+        self.to_xls_data = []  # 数据为items()格式
         # 实例化同时把指定页码的所有帖子链接全部存进自身队列
         self.page2post = Page2Post(from_page, to_page)
-        self.to_xls_data = []  # 数据为items()格式
-        self.do(showall)
+        num_to_thread = input('共有{}个帖子需要扫描,需要开启几个线程：'.format(self.page2post().__len__()))
+        # 初始化多线程
+        for i in range(int(num_to_thread)):
+            self.thrds.append(threading.Thread(target=self.unit, args=(showall,)))
+        self.do()
 
-    def do(self, showall):
+    def do(self):
+        if self.thrds:
+            for thd in self.thrds:
+                thd.start()
+            for thd in self.thrds:
+                if thd.is_alive():
+                    thd.join()
+
+    def unit(self, showall):
         while self.page2post():
             query = self.page2post.take_task()
             # 完成一个帖子的检查后，要把收集到的数据通过调用自身的方法传递出来
             post2download = Post2Download(query, showall)  # 成功
             self.to_xls_data.extend(post2download())
-        print('\n扫描完成！正在写入Excel文件...')
-        self.to_xls(self.to_xls_data)
-        print('Excel文件写入成功.')
 
     @staticmethod
     def to_xls(data=list()):
@@ -222,9 +259,14 @@ class Start:
                 worksheet.write(r, c, data[r][c])
         workbook.save('/Users/aug/Desktop/essence.xls')
 
+    def __del__(self):
+        print('\n扫描完成！正在写入Excel文件...')
+        self.to_xls(self.to_xls_data)
+        print('Excel文件写入成功.')
+
 
 ###############################
-Start(1, 3, showall=True)  #
+Start(60, 61, showall=True)  #
 ###############################
 
 
