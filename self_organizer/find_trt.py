@@ -27,7 +27,7 @@ class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
     KEY_WORDS = [
-        'manon', 'anniversary'
+        'kendra','sunderland'
     ]
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -252,7 +252,8 @@ class Start:
                 # 完成一个帖子的检查后，要把收集到的数据通过调用自身的方法传递出来
                 post2download = Post2Download(query, showall)  # 成功
             except:
-                post2download = lambda x='': []
+                print('something wrong happened @unit()')
+                sleep(2)
                 continue  # 一定要保证循环能结束，因为任何一个线程不结束，程序都进行不下去
             self.to_xls_data.extend(post2download())
 
@@ -264,7 +265,7 @@ class Start:
         for r in range(data.__len__()):  # 行
             for c in range(2):  # 列
                 worksheet.write(r, c, data[r][c])
-        workbook.save('/Users/aug/Desktop/essence.xls')
+        workbook.save('/Users/aug/Desktop/essence-{}.xls'.format('-'.join(Config.KEY_WORDS)))
 
     def __del__(self):
         print('\n扫描完成！正在写入Excel文件...')
@@ -273,7 +274,7 @@ class Start:
 
 
 ###############################
-Start(1, 5, showall=True)  #
+Start(60, 30, showall=False)  #
 ###############################
 
 
