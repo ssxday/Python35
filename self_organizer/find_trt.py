@@ -20,6 +20,7 @@ from random import choice
 import re
 import xlwt
 import threading
+from time import sleep
 
 
 class Config:
@@ -116,8 +117,9 @@ class Page2Post(TaskTeam, Config):
         for page_no in range(from_page, to_page + step, step):
             try:
                 pagecode = self.pull_request(page_no)
-            except ConnectionResetError as e:
-                print('{} @Page2Post:'.format(e.strerror))
+            except:
+                print('{} @Page2Post:')
+                sleep(2)  # 挂起2秒
                 continue
             self.scan_page(pagecode)
 
@@ -151,8 +153,9 @@ class Post2Download(TaskTeam, Config):
             source_code = self.pull_request(self.url)
             # 扫描分析帖子源代码
             self.scan_post(source_code)
-        except ConnectionResetError as e:
-            print('{} @Post2Download'.format(e.strerror))
+        except:
+            print('{} @Post2Download')
+            sleep(2)
 
     def pull_request(self, url):
         """发起请求，得到帖子内容并返回内容"""
@@ -245,8 +248,12 @@ class Start:
     def unit(self, showall):
         while self.page2post():
             query = self.page2post.take_task()
-            # 完成一个帖子的检查后，要把收集到的数据通过调用自身的方法传递出来
-            post2download = Post2Download(query, showall)  # 成功
+            try:
+                # 完成一个帖子的检查后，要把收集到的数据通过调用自身的方法传递出来
+                post2download = Post2Download(query, showall)  # 成功
+            except:
+                post2download = lambda x='': []
+                continue  # 一定要保证循环能结束，因为任何一个线程不结束，程序都进行不下去
             self.to_xls_data.extend(post2download())
 
     @staticmethod
@@ -266,7 +273,7 @@ class Start:
 
 
 ###############################
-Start(60, 61, showall=True)  #
+Start(1, 5, showall=True)  #
 ###############################
 
 
