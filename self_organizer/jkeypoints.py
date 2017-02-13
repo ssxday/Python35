@@ -70,9 +70,9 @@ class Scan:
         self.__scan()
 
     def __scan(self):
-        self.info.setdefault('title', self.__get_title())
-        self.info.setdefault('image', self.__get_image())
-        self.info.setdefault('performer', self.__get_performer())
+        self.info.setdefault(2, self.__get_title())
+        self.info.setdefault(3, self.__get_image())
+        self.info.setdefault(4, self.__get_performer())
 
     def __get_title(self):
         title_tag = self.__soup.find('h3')
@@ -89,9 +89,10 @@ class Scan:
         return 'Unknown'
 
     def __get_performer(self):
-        star_name_div = self.__soup.find('div', {'class': 'star-name'})
-        if star_name_div:
-            return star_name_div.text
+        star_name_divs = self.__soup.find_all('div', {'class': 'star-name'})
+        if star_name_divs:
+            star_names = [name.text for name in star_name_divs]
+            return star_names
         return 'Unknown'
 
 
@@ -102,7 +103,7 @@ class Describer:
         page = requests.get(urljoin(host, req), headers=Headers.HEADERS)  # 引入头信息设置
         page.encoding = 'utf-8'
         sourcecode = page.text
-        infos = {'symbol': req}
+        infos = {1: req}
         infos.update(Scan(sourcecode).info)
         if to_json:
             self.info = json.dumps(infos)
@@ -110,8 +111,10 @@ class Describer:
             self.info = infos
 
 
+relationship = {1: 'symbol', 2: 'title', 3: 'image', 4: 'performers'}
 ######################################################
-info = Describer(input('输入识别码:')).info
-for k, v in info.items():
-    print(k, ':', v)
+if __name__ == '__main__':
+    info = Describer(input('输入识别码:')).info
+    for k, v in sorted(info.items()):
+        print(relationship[k], ':', v)
 ######################################################
