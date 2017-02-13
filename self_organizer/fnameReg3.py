@@ -53,11 +53,13 @@ class TodoList:
 
 
 class MyProcessor:
+    re_before_hao = re.compile(r'.*?[a-z]{2,5}(?=[- _]?\d{3,5}.*)', re.I)  # *?表示最短匹配
+    re_fan = re.compile(r'[a-z]{2,5}$', re.I)
+    re_fan_hao = re.compile(r'[a-z]{2,5}-?\d{3,5}', re.I)
+
     def __init__(self, root_dir):
         self.loop = 0
         self.root_dir = root_dir
-        self.re_before_hao = re.compile(r'.*?[a-z]{2,5}(?=[- _]?\d{3,5}.*)', re.I)  # *?表示最短匹配
-        self.re_fan = re.compile(r'[a-z]{2,5}$', re.I)
         self.todo = TodoList()
 
     def start(self, flag=False):
@@ -80,13 +82,18 @@ class MyProcessor:
                     dsting = os.path.join(pathname, reg_f)
                     if srcing == dsting:
                         continue
-                    if len(srcing) > 1.1 * len(dsting):  # 有可能鉴别出错，需要人工处理的条件
-                        print('{} @@ {}'.format(srcing, dsting))
-                        fan_hao = re.search(r'[a-z]{2,5}-\d{3,5}', reg_f, re.I).group()  # 必定存在
-                        new_f = fan_hao + f
+                    try:
+                        # 断言：待使用的新文件名长度一定大于原文件名的长度
+                        assert len(dsting) >= len(srcing)
+                    except AssertionError:
+                        # 有可能鉴别出错，需要人工处理的条件
+                        print('原@{}\n期@{}'.format(srcing, dsting))
+                        fan_hao = self.re_fan_hao.search(reg_f).group()  # 标的是reg_f，返回值必定存在，且必带连字符
+                        # 把识别码前置
+                        new_f = fan_hao + self.re_fan_hao.sub('', f)
                         dst_join = os.path.join(pathname, new_f)
                         # os.rename(srcing, dst_join)
-                        print('{} @@@@ {}'.format(srcing, dst_join))
+                        print('后@{}\n'.format(dst_join))
                         continue  # 不同的处理逻辑，一定要continue
                     if os.path.exists(dsting):
                         if srcing.lower() != dsting.lower():
@@ -116,7 +123,7 @@ class MyProcessor:
                 real_hao_posi = self.where_first_digit(hao_and_after)
                 # 从第一个数字开始
                 hao_and_after = hao_and_after[real_hao_posi:]
-                return fan_string.upper() + '-' + hao_and_after.strip()
+                return fan_string.upper() + '-' + hao_and_after
             else:
                 return filename
         else:
