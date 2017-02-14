@@ -311,6 +311,8 @@ class Reunion:
                     self.load_thread(int(num_thread))  # 加载线程
                     print('下面依次处理各项任务'.center(50, '*'))
                     self.start()
+                    # 等所有线程结束
+                    print(' 主程序END '.center(50, '='))
                 else:
                     raise TypeError('必须输入纯数字')
             else:
@@ -342,4 +344,3 @@ class Reunion:
 #######################################
 Reunion(Constant.LAKESSD)  #
 #######################################
-print(' 主程序END '.center(50, '='))
