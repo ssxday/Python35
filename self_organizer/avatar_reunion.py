@@ -5,11 +5,12 @@ Copyright statement and purpose...
 --------------------------------------------
 File Name:avatar_reunion.py
 Author:
-Version:1.1
+Version:2.0
 Description:
-- 新引入了任务队列，可以实现掌握任务量，并在执行过程中掌握进度
-- 添加了使用requests包获取网络资源的途径，效率和成功率大大提高
-- 保留了http和urllib的方式，但不推荐使用
+    - 此版本实现了跨越式发展，在1.1版本的基础上，使用了多线程处理任务，使得执行效率大大提高
+    - 此版本同时优化了处理控制流程，交互更加明确
+    - 此版本也是最后一个保留多个测试函数的版本
+    - 从下个版本起，不再保留多余的可供学习参考使用的类或函数
 """
 import random
 import os
@@ -18,6 +19,8 @@ import http.client as hct
 import urllib.request as uq
 import requests
 import html.parser
+import threading
+from common_use import Constant
 
 
 # 单例装饰器
@@ -124,7 +127,7 @@ class Fetch:
 
     def __init__(self, task=('', '')):
         self.keyword, self.savepath = task
-        self.HOST = r'www.javbus5.com'  # 用https包请求网络资源不需要加https协议前缀
+        self.HOST = Constant.AVATAR_HOST  # 用https包请求网络资源不需要加https协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
@@ -134,13 +137,11 @@ class Fetch:
 
     def fetch(self, keyword):  # 等同于fetch1
         """获取网络资源"""
-        # https://www.javbus3.com/PGD-907
         request = os.sep + keyword
         self.hcc = hct.HTTPSConnection(self.HOST, 443)  # 连接服务器对象(HTTPS协议)
         self.hcc.request('GET', request)  # 请求数据
         with self.hcc.getresponse() as resp:
             data = resp.read().decode()
-            # print(data)
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
 
@@ -197,12 +198,12 @@ class Match:
     VIDEO = ['.mp4', '.avi', '.rmvb', '.mkv', '.wmv']
     IMAGE = ['.jpg', '.jpeg', '.gif', '.bmp', '.png']
 
-    def __init__(self):
+    def __init__(self, path):
         self.img_pool = []
         self.todo = TodoList()  # 初始化多线程任务列表
-        self.engine()  # 自动运行engine()
+        self.engine(path)  # 自动运行engine()
 
-    def engine(self, pathname=r'/Users/AUG/Desktop/overall'):
+    def engine(self, pathname=r''):
         """engine()只遍历包含文件夹和视频文件名称的列表"""
         if not os.path.isdir(pathname):
             exit('路径不存在或路径并非是一个目录.')
@@ -262,16 +263,14 @@ class Match:
             # 过滤掉因mark_out()原样输出造成v_mark不符合符合标准格式的情况
             if not re.search(r'^[a-z]{2,}-\d{3,}', v_mark, re.I):
                 return
-            # 需要去互联网上找资源
-            # print('我要上网去找', v_mark)  # 实时查看
-            # print('img_pool是：', self.img_pool)  # 实时查看
             # 进入关键环节
             instructions = v_mark, pure_path  # 关键指令！！！
             self.todo.add_task(instructions)  # 添加任务指令 -> tuple
         else:  # 相对应的文件存在时
             pass
 
-    def exceptions(self, filename):
+    @staticmethod
+    def exceptions(filename):
         """以下任意一项为True，则返回True"""
         # filename以.或_开头
         if filename.startswith('.') or filename.startswith('_'):
@@ -279,14 +278,15 @@ class Match:
         # filename里有rids出现
         rids = [
             'cari', '1pon', 'paco', 'heyzo', 'mywife', 'luxu', 'dic',
-            'gkd', 'hmpd', 'lxvs', 'nacr'
+            'gkd', 'hmpd', 'nacr'
         ]
         for r in rids:
             if r in filename.lower():
                 return True
         return False
 
-    def mark_out(self, text):
+    @staticmethod
+    def mark_out(text):
         """在text中剥离出标志"""
         ptn = r'^[a-z]{2,}-\d{3,}'  # 标志的正则
         try:
@@ -296,15 +296,55 @@ class Match:
             return text  # 注意，如果找不到合格的标志，则返回原本的text
 
 
-fc = Match()  # 结果就是最终生成TodoList
-# td = TodoList()  # TodoList是单例类，确保了各实例的元素完全一致
-print('查看任务列表：')
-for task in fc.todo():
-    print(task)
-print('任务个数共计:', fc.todo.__len__())
-print('下面依次处理各项任务'.center(50, '*'))
-i = 0
-for task in fc.todo():
-    i += 1
-    print(i, '正在处理：', task)
-    Fetch(task)
+class Reunion:
+    i = 0
+
+    def __init__(self, root_dir):
+        self.reunion = Match(root_dir)
+        self.todo = self.reunion.todo()  # for easily use
+        self.__pool_threads = []
+        if self.todo:
+            print('查看任务列表：')
+            for t, d in self.todo:
+                print('{:\t<8} =>\t{}'.format(t, d))
+            print('任务个数共计:', self.todo.__len__())
+            num_thread = input('需要开启几个线程？')
+            if num_thread:
+                if num_thread.isdigit():
+                    self.load_thread(int(num_thread))  # 加载线程
+                    print('下面依次处理各项任务'.center(50, '*'))
+                    self.start()
+                    # 等所有线程结束
+                    print(' 主程序END '.center(50, '='))
+                else:
+                    raise TypeError('必须输入纯数字')
+            else:
+                print('Mission Abort.')
+        else:
+            print(' Hooh! Already United! '.center(50, '='))
+
+    def load_thread(self, n=1):
+        # 线程的数目以任务量多少和最大线程数中较小的为准
+        for i in range(min(n, self.todo.__len__())):
+            self.__pool_threads.append(threading.Thread(target=self.unit, args=()))
+
+    def start(self):
+        if self.__pool_threads:
+            print('共开启线程{}个'.format(self.__pool_threads.__len__()))
+            for thrd in self.__pool_threads:
+                thrd.start()
+            for thrd in self.__pool_threads:
+                if thrd.is_alive():
+                    thrd.join()
+
+    def unit(self):
+        while self.todo:
+            self.i += 1
+            task = self.reunion.todo.take_task()  # 取出一项任务
+            print('{:0>3} 正在将{} 的资源下载到{}'.format(self.i, task[0], task[1]))
+            Fetch(task)
+
+
+#######################################
+Reunion(Constant.LAKESSD)  #
+#######################################
