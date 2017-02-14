@@ -27,7 +27,7 @@ for i in range(5):
         if i == 2:
             raise FuckError
     except FuckError as e:
-        print('Fuck!被捕获了',e)
+        print('Fuck!被捕获了',e.__str__())
     else:
         print('motherfucker跑了')
     print(i)
@@ -36,4 +36,7 @@ for i in range(5):
 # assert语句
     # assert <条件>   条件为假时才抛出异常
     # except用AssertionError来捕获
-assert True
+try:
+    assert 2==1
+except AssertionError:
+    print('断言错了')
