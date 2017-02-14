@@ -5,22 +5,21 @@ Copyright statement and purpose...
 --------------------------------------------
 File Name:avatar_reunion.py
 Author:
-Version:2.0
+Version:2.1
 Description:
-    - 此版本实现了跨越式发展，在1.1版本的基础上，使用了多线程处理任务，使得执行效率大大提高
-    - 此版本同时优化了处理控制流程，交互更加明确
-    - 此版本也是最后一个保留多个测试函数的版本
-    - 从下个版本起，不再保留多余的可供学习参考使用的类或函数
+    - 此版本删除上个版本中多余的可供学习参考使用的类或函数
+    — 移植了Describer类实现网络资源获取
 """
-import random
 import os
 import re
-import http.client as hct
-import urllib.request as uq
 import requests
-import html.parser
 import threading
+from random import choice
+from urllib.parse import urljoin
+from bs4 import BeautifulSoup
 from common_use import Constant
+from common_use import Jp
+from common_use import Headers
 
 
 # 单例装饰器
@@ -35,6 +34,44 @@ def singleton(cls, *args, **kw):
     return _singleton
 
 
+class Scan:
+    def __init__(self, code):
+        self.__soup = BeautifulSoup(code, 'lxml')
+        self.info = dict()
+        # 开始扫描
+        self.__scan()
+
+    def __scan(self):
+        self.info.setdefault('title', self.__get_title())
+        self.info.setdefault('image', self.__get_image())
+
+    def __get_title(self):
+        title_tag = self.__soup.find('h3')
+        if title_tag:
+            title = title_tag.text  # 标签内的字符串
+            return title
+        return 'Unknown'
+
+    def __get_image(self):
+        image_url_tag = self.__soup.find('a', {'class': 'bigImage'})
+        if image_url_tag:
+            image_url = image_url_tag.attrs.get('href')
+            return image_url
+        return 'Unknown'
+
+
+class Describer:
+    def __init__(self, symbol):
+        host = choice(Jp.HOSTS)  # 随机选择一个base_url
+        page = requests.get(urljoin(host, symbol), headers=Headers.HEADERS)  # 引入头信息设置
+        if page:
+            page.encoding = 'utf-8'
+            sourcecode = page.text
+            self.info = Scan(sourcecode).info
+        else:
+            self.info = dict()
+
+
 @singleton
 class TodoList:
     """采用单线程时，你并不知道任务总量有多少
@@ -46,11 +83,9 @@ class TodoList:
     def __init__(self):
         self.__todo = []  # 初始化任务列表
 
-    # 在Match.pairing()中调用
     def add_task(self, task):
         self.__todo.append(task)
 
-    # 在Dispatch.start()中被调用
     def take_task(self):
         if not self.isempty():  # 还有任务可以领
             """do something"""
@@ -84,105 +119,19 @@ class TaskError(Exception):
         return self.note
 
 
-class MyHTMLParser(html.parser.HTMLParser):
-    """解析网络数据的源代码，定位目标"""
-
-    def __init__(self):
-        super(MyHTMLParser, self).__init__()
-        self.target = ''
-
-    def handle_starttag(self, tag, attrs):
-        if tag == 'a' and len(attrs) == 2:
-            if ('class', 'bigImage') == attrs[0]:
-                href, url = attrs[1]
-                self.target = url  # 成功定位目标资源url
-                # 警告警告警告：handle_系列函数只能设置找到了怎么办
-                # 不能设置找不到怎么办，因为：
-                # 找到了之后parser还可能重复调用本方法
-                # 把原本处理好的数据丢弃，比如下面这个else，将把self.target擦掉
-                # else:  # 并没有找到目标资源的url
-                #     self.target = ''  # 这个值将在Fetch.pickup()被Fetch.target引用
-
-    # 构造一个上下文管理器
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close()
-
-
 class Fetch:
-    """连接互联网，去拿图片回来，利用多线程"""
-    user_agents = [
-        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-        'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
-        'Opera/9.25 (Windows NT 5.1; U; en)',
-        'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
-        'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
-        'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
-        'Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9',
-        "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Ubuntu/11.04 Chromium/16.0.912.77 Chrome/16.0.912.77 Safari/535.7",
-        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
-    ]
+    """连接互联网，去拿图片回来"""
 
     def __init__(self, task=('', '')):
         self.keyword, self.savepath = task
-        self.HOST = Constant.AVATAR_HOST  # 用https包请求网络资源不需要加https协议前缀
-        self.hcc = None  # 准备HTTPConnection
-        self.parser = None  # 准备解析互联网上返回的源代码
-        self.target = ''  # 目标资源的URL
-
-        # self.fetch(self.keyword)  # 初始化调用fetch()
-        self.fetch1(self.keyword)  # 二选一
-
-    def fetch(self, keyword):  # 等同于fetch1
-        """获取网络资源"""
-        request = os.sep + keyword
-        self.hcc = hct.HTTPSConnection(self.HOST, 443)  # 连接服务器对象(HTTPS协议)
-        self.hcc.request('GET', request)  # 请求数据
-        with self.hcc.getresponse() as resp:
-            data = resp.read().decode()
-            self.pickup(data)  # 把取回来的数据交给pickup()处理
-        self.hcc.close()
-
-    def fetch1(self, keyword):  # 等同于fetch
-        """使用requests包获取网络资源"""
-        requesturl = r'https://' + self.HOST + os.sep + keyword
-        r = requests.get(requesturl)
-        data = r.content.decode()
-        r.close()
-        self.pickup(data)
-
-    def pickup(self, data):
-        """从带回来的数据data里找出所需资源的url"""
-        with MyHTMLParser() as self.parser:  # 自定义的上下文管理器，HTMLParser自身并不是
-            self.parser.feed(data)  # 自定义解析器开始工作
-            self.target = self.parser.target  # 从解析器对象里拿到目标url
-        # 因为互联网因素，这个值有可能取到一个空字符串，因此要做一个判断
-        if self.target:
-            # self.recover()  # 把远程资源下载到指定位置
-            self.retrieve()  # 把远程资源下载到指定位置，二选一
-        else:
-            print('未能通过指令获取到{}的URL'.format(self.keyword))
-
-    def recover(self):  # 等同于retrieve()
-        """使用urllib.request.urlopen()把目标url资源下载到指定位置"""
-        hdr = {  # 头信息
-            'User-Agent': random.choice(self.user_agents),
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-            'Accept-Encoding': 'none',
-            'Accept-Language': 'en-US,en;q=0.8',
-            'Connection': 'keep-alive'}
-        dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
-        req = uq.Request(self.target, headers=hdr)  # 设置详细的请求，重点是头信息
-        with uq.urlopen(req) as telefile:
-            with open(dst, 'wb') as localfile:
-                localfile.write(telefile.read())  # 写入文件，完成！
+        desc = Describer(self.keyword).info
+        self.target = desc.get('image')  # 目标资源的URL
+        self.title = desc.get('title')  # 下到本地的文件名(不含扩展名)
+        self.retrieve()
 
     def retrieve(self):  # 等同于recover()
         """使用requests.get()把目标url资源下载到指定位置的方法"""
-        dst = self.savepath + os.sep + self.keyword + os.path.splitext(self.target)[1]
+        dst = self.savepath + os.sep + self.title + os.path.splitext(self.target)[1]
         telefile = requests.get(self.target)
         with open(dst, 'wb') as localfile:
             localfile.write(telefile.content)  # 写入文件，完成！
@@ -243,16 +192,14 @@ class Match:
         return vs + dirs
 
     def pairing(self, filepath):
-        """比对视频文件在图片池中有无对应，从而得出Todo任务，并添加到TodoList
+        """
         几经过滤，传进来的一定是视频后缀的文件路径
         1、判断是否存在与之对应的图片文件。如果没有，继续第2步
-        2、实例化TodoList，提交用于执行联网Fetch任务的关键信息
-            需要提供的执行信息有：
-            1、标志
-            2、原标的文件所在的目录，以便保存
-        3、。。。
+        2、用于执行联网Fetch任务的关键信息有：
+            1、识别码
+            2、原标的文件所在的路径，以便保存回原来的目录
         :param filepath:整段文件路径
-        :return:
+        :return: None
         """
         pure_path = os.path.split(filepath)[0]  # 文件所在目录
         pure_name = os.path.split(filepath)[1]  # 文件名+扩展名
@@ -297,6 +244,7 @@ class Match:
 
 
 class Reunion:
+    """多线程"""
     i = 0
 
     def __init__(self, root_dir):
