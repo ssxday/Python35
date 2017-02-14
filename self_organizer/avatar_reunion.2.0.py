@@ -124,7 +124,7 @@ class Fetch:
 
     def __init__(self, task=('', '')):
         self.keyword, self.savepath = task
-        self.HOST = r'www.javbus5.com'  # 用https包请求网络资源不需要加https协议前缀
+        self.HOST = Constant.AVATAR_HOST  # 用https包请求网络资源不需要加https协议前缀
         self.hcc = None  # 准备HTTPConnection
         self.parser = None  # 准备解析互联网上返回的源代码
         self.target = ''  # 目标资源的URL
@@ -134,7 +134,6 @@ class Fetch:
 
     def fetch(self, keyword):  # 等同于fetch1
         """获取网络资源"""
-        # https://www.javbus3.com/PGD-907
         request = os.sep + keyword
         self.hcc = hct.HTTPSConnection(self.HOST, 443)  # 连接服务器对象(HTTPS协议)
         self.hcc.request('GET', request)  # 请求数据
@@ -294,50 +293,53 @@ class Match:
             return text  # 注意，如果找不到合格的标志，则返回原本的text
 
 
-fc = Match(Constant.THETWO)  # 结果就是最终生成TodoList
-print('查看任务列表：')
-for t, d in fc.todo():
-    print('{:\t<8} =>\t{}'.format(t, d))
-print('任务个数共计:', fc.todo.__len__())
-
-print('下面依次处理各项任务'.center(50, '*'))
-
-
-class Boss:
-    """本类完全设计为类方法，不用实例化对象即可完成
-    必须首先调用load()方法
-    """
+class Reunion:
     i = 0
-    todo = None
-    __pool = []
 
-    @classmethod
-    def load(cls, n=1, jobs=fc.todo):
-        cls.total = n  # 最大同时开多少个线程
-        cls.todo = jobs  # 任务池对象
+    def __init__(self, root_dir):
+        self.reunion = Match(root_dir)
+        self.todo = self.reunion.todo()  # for easily use
+        self.__pool_threads = []
+        if self.todo:
+            print('查看任务列表：')
+            for t, d in self.todo:
+                print('{:\t<8} =>\t{}'.format(t, d))
+            print('任务个数共计:', self.todo.__len__())
+            num_thread = input('需要开启几个线程？')
+            if num_thread:
+                if num_thread.isdigit():
+                    self.load_thread(int(num_thread))  # 加载线程
+                    print('下面依次处理各项任务'.center(50, '*'))
+                    self.start()
+                else:
+                    raise TypeError('必须输入纯数字')
+            else:
+                print('Mission Abort.')
+        else:
+            print(' Hooh! Already United! '.center(50, '='))
+
+    def load_thread(self, n=1):
         # 线程的数目以任务量多少和最大线程数中较小的为准
-        for i in range(min(n, jobs.__len__())):
-            cls.__pool.append(threading.Thread(target=cls.unit, args=()))
+        for i in range(min(n, self.todo.__len__())):
+            self.__pool_threads.append(threading.Thread(target=self.unit, args=()))
 
-    @classmethod
-    def start(cls):
-        if cls.__pool:
-            print('共开启线程{}个'.format(cls.__pool.__len__()))
-            for thrd in cls.__pool:
+    def start(self):
+        if self.__pool_threads:
+            print('共开启线程{}个'.format(self.__pool_threads.__len__()))
+            for thrd in self.__pool_threads:
                 thrd.start()
-            for thrd in cls.__pool:
+            for thrd in self.__pool_threads:
                 if thrd.is_alive():
                     thrd.join()
 
-    @classmethod
-    def unit(cls):
-        while cls.todo():
-            cls.i += 1
-            task = cls.todo.take_task()  # 取出一项任务
-            print('{:0>3} 正在将{} 的资源下载到{}'.format(cls.i, task[0], task[1]))
+    def unit(self):
+        while self.todo:
+            self.i += 1
+            task = self.reunion.todo.take_task()  # 取出一项任务
+            print('{:0>3} 正在将{} 的资源下载到{}'.format(self.i, task[0], task[1]))
             Fetch(task)
 
-
-Boss.load(int(input('请设置线程数：')))
-Boss.start()
+#######################################
+Reunion(Constant.LAKESSD)  #
+#######################################
 print(' 主程序END '.center(50, '='))
