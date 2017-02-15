@@ -7,6 +7,9 @@ File Name:
 Author:
 Version:1.0
 Description:提供一个识别码，返回其相关联的信息
+    - 使用方法：
+        info = describe(识别码[,to_json=False])
+        默认返回字典形式的信息，当to_json为True时返回JSON
     该模块有4个类：
     SymbolSwitch对输入的识别码字符串进行分拣，为Describer提供requests的请求url
     Scan通过BeautifulSoup对response进行解析，提炼出所需信息
@@ -43,9 +46,9 @@ class SymbolSwitch:
             if letters.lower() == 'n':
                 self.symbol = '{}{}'.format(letters, nums)
             elif letters.lower() == 'carib':
-                self.symbol = '{}_{}'.format(nums[:6], nums[6:])
-            elif letters.lower() == '1pond':
                 self.symbol = '{}-{}'.format(nums[:6], nums[6:])
+            elif letters.lower() == '1pond':
+                self.symbol = '{}_{}'.format(nums[:6], nums[6:])
             else:
                 self.symbol = '{}-{}'.format(letters.upper(), nums)
         else:
@@ -100,11 +103,12 @@ class Describer:
     def __init__(self, symbol, to_json=False):
         host = choice(Jp.HOSTS)  # 随机选择一个base_url
         req = SymbolSwitch(symbol).symbol  # 请求字符串
-        page = requests.get(urljoin(host, req), headers=Headers.HEADERS)  # 引入头信息设置
-        page.encoding = 'utf-8'
-        sourcecode = page.text
         infos = {1: req}
-        infos.update(Scan(sourcecode).info)
+        page = requests.get(urljoin(host, req), headers=Headers.HEADERS)  # 引入头信息设置
+        if page:
+            page.encoding = 'utf-8'
+            sourcecode = page.text
+            infos.update(Scan(sourcecode).info)
         if to_json:
             self.info = json.dumps(infos)
         else:
@@ -112,9 +116,15 @@ class Describer:
 
 
 relationship = {1: 'symbol', 2: 'title', 3: 'image', 4: 'performers'}
+
+
+def describe(what, to_json=False):
+    return Describer(what, to_json).info
+
+
 ######################################################
 if __name__ == '__main__':
-    info = Describer(input('输入识别码:')).info
+    info = describe(input('输入识别码:'))
     for k, v in sorted(info.items()):
-        print(relationship[k], ':', v)
+        print(relationship.get(k), ':', v)
 ######################################################
