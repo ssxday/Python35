@@ -22,6 +22,7 @@ import json
 from common_use import Jp
 from common_use import Headers
 from random import choice
+from time import sleep
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 
@@ -73,9 +74,10 @@ class Scan:
         self.__scan()
 
     def __scan(self):
-        self.info.setdefault(2, self.__get_title())
-        self.info.setdefault(3, self.__get_image())
-        self.info.setdefault(4, self.__get_performer())
+        self.info.setdefault(3, self.__get_title())
+        self.info.setdefault(5, self.__get_image())
+        self.info.setdefault(7, self.__get_performer())
+        self.info.setdefault(2, self.__get_publish_date())
 
     def __get_title(self):
         title_tag = self.__soup.find('h3')
@@ -98,6 +100,13 @@ class Scan:
             return star_names
         return 'Unknown'
 
+    def __get_publish_date(self):
+        sands = self.__soup.find_all('span', {'class': 'header'})
+        if sands:
+            publish_tag = sands[1].next.next
+            return str(publish_tag)
+        return 'Unknown'
+
 
 class Describer:
     def __init__(self, symbol, to_json=False):
@@ -115,11 +124,22 @@ class Describer:
             self.info = infos
 
 
-relationship = {1: 'symbol', 2: 'title', 3: 'image', 4: 'performers'}
+relationship = {
+    1: 'symbol', 3: 'title', 5: 'image',
+    7: 'performers', 2: 'publish',
+}
 
 
 def describe(what, to_json=False):
     return Describer(what, to_json).info
+
+
+def desc_walk(begin, end, head='abp', to_json=False):
+    for num in range(begin, end + 1):
+        num_str = head + '{:0>3}'.format(num)
+        desc = describe(num_str, to_json)
+        print(desc)
+        sleep(3)  # 循环太紧容易遭到服务器屏蔽
 
 
 ######################################################
