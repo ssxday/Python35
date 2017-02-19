@@ -12,14 +12,13 @@ Description:分三个步骤
 3、download -> torrent暂时存放在文件中(暂未开通)
 
 """
-import requests
-from html.parser import HTMLParser
-from os.path import join
-from bs4 import BeautifulSoup
-from random import choice
 import re
 import xlwt
 import threading
+import requests
+from os.path import join
+from bs4 import BeautifulSoup
+from random import choice
 from time import sleep
 
 
@@ -27,7 +26,7 @@ class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
     KEY_WORDS = [
-        'kendra','sunderland'
+        'cjod', 'faye'
     ]
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -78,21 +77,12 @@ class TaskTeam:
         return self.tasks
 
 
-class Page2PostParser(HTMLParser):
-    def __init__(self):
-        super(Page2PostParser, self).__init__()
-        self.__tasks = []
+class SomethingWrong(Exception):
+    def __init__(self, note='something wrong occurred'):
+        self.note = note
 
-    def handle_starttag(self, tag, attrs):
-        if tag == 'a' and len(attrs) == 2:
-            attrs_in_dict = dict(attrs)
-            if attrs_in_dict.get('href', '').startswith(r'htm_data'):
-                self.__tasks.append(attrs_in_dict.get('href'))  # 只负责添加
-
-    def __call__(self, *args, **kwargs):
-        results = self.__tasks.copy()  # 一定要导出一份copy再clear
-        self.__tasks.clear()  # 应对Page2Post.scan_page()中的extend()不要重复添加
-        return results
+    def __str__(self):
+        return self.note
 
 
 class Page2Post(TaskTeam, Config):
@@ -100,7 +90,6 @@ class Page2Post(TaskTeam, Config):
 
     def __init__(self, from_page=5, to_page=None):
         super(Page2Post, self).__init__()
-        self.parser = Page2PostParser()
         self.engine(from_page, to_page)
 
     def engine(self, from_page, to_page):
@@ -117,26 +106,32 @@ class Page2Post(TaskTeam, Config):
         for page_no in range(from_page, to_page + step, step):
             try:
                 pagecode = self.pull_request(page_no)
-            except:
-                print('{} @Page2Post:')
+            except AssertionError:
+                print('第{}页发生错误@Page2Post'.format(page_no))
                 sleep(2)  # 挂起2秒
                 continue
-            self.scan_page(pagecode)
+            self.scan_page(page_no, pagecode)
 
     def pull_request(self, which_page):
         """"""
         query_string = r'thread.php?fid=3&page={page}'.format(page=which_page)
         url = join(self.URL_ROOT, query_string)
         # print(url)
-        page = requests.get(url, headers=self.HEADERS)
+        page = requests.get(url, headers=self.HEADERS, )
+        assert page
         page.encoding = 'utf-8'
         source_code = page.text
         return source_code
 
-    def scan_page(self, data):
-        self.parser.feed(data)  # 把当前页的所有帖子地址加入到task队列
+    def scan_page(self, page_no, data):
         # 把task队列搬到当前对象的__task，已继承队列属性
-        self.tasks.extend(self.parser())
+        soup = BeautifulSoup(data, 'lxml')
+        post_tags = soup.find_all('a', {'title': '打开新窗口', 'target': '_blank'})
+        if post_tags:
+            post_suffixes = [tag.get('href', '') for tag in post_tags]
+            self.tasks.extend(post_suffixes)
+        else:
+            raise SomethingWrong('第{}页没有符合条件的帖子@Page2Post'.format(page_no))
 
 
 class Post2Download(TaskTeam, Config):
@@ -153,8 +148,8 @@ class Post2Download(TaskTeam, Config):
             source_code = self.pull_request(self.url)
             # 扫描分析帖子源代码
             self.scan_post(source_code)
-        except:
-            print('{} @Post2Download')
+        except AssertionError:
+            print('{} @Post2Download'.format(self.url))
             sleep(2)
 
     def pull_request(self, url):
@@ -162,6 +157,7 @@ class Post2Download(TaskTeam, Config):
         if self.show_all:
             print('正在处理帖子 {}'.format(url))
         page = requests.get(url, headers=self.HEADERS)
+        assert page
         page.encoding = 'utf-8'  # 设置编码
         text = page.text
         return text
@@ -253,6 +249,7 @@ class Start:
                 post2download = Post2Download(query, showall)  # 成功
             except:
                 print('something wrong happened @unit()')
+                self.page2post.add_task(query)  # 把做错的任务再放回去
                 sleep(2)
                 continue  # 一定要保证循环能结束，因为任何一个线程不结束，程序都进行不下去
             self.to_xls_data.extend(post2download())
@@ -274,7 +271,7 @@ class Start:
 
 
 ###############################
-Start(60, 30, showall=False)  #
+Start(1, 2, showall=False)  #
 ###############################
 
 
