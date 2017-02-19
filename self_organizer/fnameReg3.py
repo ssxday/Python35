@@ -84,13 +84,13 @@ class MyProcessor:
                         continue
                     try:
                         # 断言：待使用的新文件名长度一定大于原文件名的长度
-                        assert len(dsting) >= len(srcing)
+                        assert len(dsting) >= 0.9 * len(srcing)
                     except AssertionError:
                         # 有可能鉴别出错，需要人工处理的条件
                         print('原@{}\n期@{}'.format(srcing, dsting))
                         fan_hao = self.re_fan_hao.search(reg_f).group()  # 标的是reg_f，返回值必定存在，且必带连字符
                         # 把识别码前置
-                        new_f = fan_hao + self.re_fan_hao.sub('', f)
+                        new_f = fan_hao + ' ' + self.re_fan_hao.sub('', f)
                         dst_join = os.path.join(pathname, new_f)
                         # os.rename(srcing, dst_join)
                         print('后@{}\n'.format(dst_join))
@@ -158,41 +158,49 @@ def truncate(txt='', max_length=30, abbreviation='...'):
         return truncated
 
 
-processor = MyProcessor(Constant.LAKESSD)
-count = processor.start(flag=True)  # 默认False不遍历子目录
-if count:
-    for n, t in enumerate(processor.todo(), start=1):
-        t = (os.path.split(tt)[1] for tt in t)
-        src, dst = t
-        print('{:<4} {:<35} => {}'.format(n, truncate(src), truncate(dst)))
-    print('共计%d项任务'.center(50, '*') % count)
-    confirm = input('确认以上任务吗？\n'
-                    '\t取消任务 - 直接回车\n'
-                    '\t需要剔除指定任务 - drop\n'
-                    '\t执行任务 - 其他任意字母\n'
-                    )
-    if confirm:
-        if confirm == 'drop':
-            drop_which = input('需要单独剔除任务的编号(范围1~{},以空格间隔):'.format(processor.todo().__len__()))
-            print()
-            if drop_which:
-                which_numbers = drop_which.split(' ')  # 列表
-                fine_numbers = [int(n) for n in which_numbers if n.isdigit()]
-                if max(fine_numbers) > processor.todo().__len__() or min(fine_numbers) < 1:
-                    raise ValueError('输入的数字超出任务数量')
-                for num in sorted(fine_numbers, reverse=True):  # 一定要从编号大的开始弹出
-                    processor.todo().pop(num - 1)  # 因为显示是从1开始
-            else:
-                print('按原计划执行 - Mission proceed\n')
-        while processor.todo():
-            t = processor.todo.take_task()
+# 封装处理过程
+def start(dir_to_reg, flag=True):
+    processor = MyProcessor(dir_to_reg)
+    count = processor.start(flag)  # 默认False不遍历子目录
+    if count:
+        for n, t in enumerate(processor.todo(), start=1):
+            t = (os.path.split(tt)[1] for tt in t)
             src, dst = t
-            os.rename(src, dst)
-            print('{} 已更名为 {}'.format(os.path.split(src)[1],
-                                      os.path.split(dst)[1])
-                  )
+            print('{:<4} {:<35} => {}'.format(n, truncate(src), truncate(dst)))
+        print('共计%d项任务'.center(50, '*') % count)
+        confirm = input('确认以上任务吗？\n'
+                        '\t取消任务 - 直接回车\n'
+                        '\t需要剔除指定任务 - drop\n'
+                        '\t执行任务 - 其他任意字母\n'
+                        )
+        if confirm:
+            if confirm == 'drop':
+                drop_which = input('需要单独剔除任务的编号(范围1~{},以空格间隔):'.format(processor.todo().__len__()))
+                print()
+                if drop_which:
+                    which_numbers = drop_which.split(' ')  # 列表
+                    fine_numbers = [int(n) for n in which_numbers if n.isdigit()]
+                    if max(fine_numbers) > processor.todo().__len__() or min(fine_numbers) < 1:
+                        raise ValueError('输入的数字超出任务数量')
+                    for num in sorted(fine_numbers, reverse=True):  # 一定要从编号大的开始弹出
+                        processor.todo().pop(num - 1)  # 因为显示是从1开始
+                else:
+                    print('按原计划执行 - Mission proceed\n')
+            while processor.todo():
+                t = processor.todo.take_task()
+                src, dst = t
+                os.rename(src, dst)
+                print('{} 已更名为 {}'.format(os.path.split(src)[1],
+                                          os.path.split(dst)[1])
+                      )
+        else:
+            print('\n任务已取消 - Mission Abort')
     else:
-        print('\n任务已取消 - Mission Abort')
-else:
-    root_d = os.path.split(processor.root_dir)[1]
-    print(' 太好了！目录{}中所有文件名都已标准化，无需处理 '.format(root_d).center(50, '*'))
+        root_d = os.path.split(processor.root_dir)[1]
+        print(' 太好了！目录{}中所有文件名都已标准化，无需处理 '.format(root_d).center(50, '*'))
+
+
+#####################################
+if __name__ == '__main__':
+    start(Constant.LAKESSD, True)
+#####################################
