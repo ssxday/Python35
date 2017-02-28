@@ -41,6 +41,9 @@ class SimuGen:
                     with open(dstpath, 'wb') as simu_f:
                         simu_f.write(self.FILLING)
 
+    def __del__(self):
+        print('已完成')
+
 
 if __name__ == '__main__':
-    sg = SimuGen(Constant.THEONE)
+    SimuGen(Constant.THETWO)

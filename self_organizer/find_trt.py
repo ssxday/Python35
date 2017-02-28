@@ -26,7 +26,11 @@ class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
     KEY_WORDS = [
-        'cjod', 'faye'
+        '宮下華奈',
+    ]
+    HISTORY_ = [
+        'blacked', 'heyzo','Kristen Lee','Eva Lovia','Moka Mora','Haley Reed',
+        'Cadence Lux', 'Anya Olsen','Stella Cox','Lyra Law','sweet cat','Lucy Heart',
     ]
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
@@ -253,6 +257,7 @@ class Start:
                 sleep(2)
                 continue  # 一定要保证循环能结束，因为任何一个线程不结束，程序都进行不下去
             self.to_xls_data.extend(post2download())
+            sleep(1)
 
     @staticmethod
     def to_xls(data=list()):
@@ -271,7 +276,7 @@ class Start:
 
 
 ###############################
-Start(1, 2, showall=False)  #
+Start(1, 20, showall=False)  #
 ###############################
 
 

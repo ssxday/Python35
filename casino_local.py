@@ -254,13 +254,11 @@ class Player:
 
     def __psych(self):
         """心理干预策略"""
-        if self.chipsInHand < 2 * self.howmuch:
-            """采取措施"""
-            self.howmuch = self.notebook.howmuch  # 回到上一轮结束时的状态
-            raise PsychIntervention
+        assert self.chipsInHand >= 2 * self.howmuch
 
     def calm(self):
         """心理干预启动后的反应策略"""
+        self.howmuch = self.notebook.howmuch  # 回到上一轮结束时的状态
         # Then...
         self.notebook.psy2notebook()
 
@@ -317,6 +315,9 @@ class Dealer:  # 本类才是各类的核心
         self.dice.shake()  # 摇骰子,Dices变换outcome
         try:
             self.player.evaluate()  # Player变换howmuch
+        except AssertionError:
+            self.player.calm()  # 心理干预启动后的应对措施
+        else:
             self.player.guess()  # Player变换beton
             if self.dice.outcome == self.player.beton:
                 # Win
@@ -327,8 +328,6 @@ class Dealer:  # 本类才是各类的核心
                 wl = 0
             # 向player发送反馈
             self.player.dealer2player(wl)  # wl -> win or lose
-        except PsychIntervention:
-            self.player.calm()  # 心理干预启动后的应对措施
 
 
 class PsychIntervention(Exception):

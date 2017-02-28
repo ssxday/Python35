@@ -224,7 +224,7 @@ class Match:
             return True
         # filename里有rids出现
         rids = [
-            'cari', '1pon', 'paco', 'heyzo', 'mywife', 'luxu', 'dic',
+            'cari', '1pon', 'paco', 'mywife', 'luxu', 'dic',
             'gkd', 'hmpd', 'nacr'
         ]
         for r in rids:
@@ -294,5 +294,5 @@ class Reunion:
 
 
 #######################################
-Reunion(Constant.LAKESSD)  #
+Reunion(Constant.SEAGATE)  #
 #######################################

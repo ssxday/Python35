@@ -14,7 +14,6 @@ Description:本模块为批量规范化某些文件名而设计
 """
 import re
 import os
-from common_use import Constant
 
 
 class TaskTeam:

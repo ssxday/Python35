@@ -122,7 +122,6 @@ class Describer:
         if page_htm:
             page_htm.encoding = 'utf-8'
             sourcecode = page_htm.text
-            print(page_htm.cookies)
             return sourcecode
         else:
             raise WeaknessError('Failed to open the page.')

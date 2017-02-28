@@ -77,7 +77,16 @@ for i in iter(for_iter, 23):  # sentinel必须精确指定，否则一直迭代�
 
 print('itertools模块 - 无限迭代'.center(50, '*'))
 import itertools
+# chain: 多个序列连在一起迭代，仿佛是一个序列似的
+print('chain(seq1,seq2)')
+a = ['a','b']
+b = [1,2]
+chain = itertools.chain(a,b)
+print('chain是个{}对象'.format(chain))
+for c in chain:
+    print(c)
 
+print()
 print("无限迭代count(),用于生成等差数列")
 for i in itertools.count(3, 4):  # y = 3 + 4x
     if i < 15:  # 如果不加条件会一直往下走,必须加break

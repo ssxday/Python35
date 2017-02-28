@@ -202,5 +202,5 @@ def start(dir_to_reg, flag=True):
 
 #####################################
 if __name__ == '__main__':
-    start(Constant.LAKESSD, True)
+    start(Constant.TOSHIBA, True)
 #####################################

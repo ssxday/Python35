@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
-import os, time
+import os
+import time
+from common_use import Constant
 
 
 class MyDir:
@@ -88,12 +90,7 @@ class MyDir:
 
 
 # module time is already loaded at first.
-target = r'/Volumes/Seagate/Tencent/Dat/gext/pre'
-# target = r'/Users/AUG/我的坚果云/tr'
-# target = r'/Users/AUG/Desktop/tr'
-# target = r'./overall'
-# target = r'http://localhost'
-target = r'/Library/WebServer/Documents'
+target = Constant.LOCALWEB
 t1 = time.time()
 my = MyDir(target)
 print(my.data)
