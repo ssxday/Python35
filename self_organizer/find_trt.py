@@ -5,12 +5,13 @@ Copyright statement and purpose...
 -----------------------------------------------------
 File Name:
 Author:
-Version:2.0
+Version:2.2
 Description:分三个步骤
 1、page -> post
 2、post -> download 加入多线程
 3、download -> torrent暂时存放在文件中(暂未开通)
 
+优化了过滤数据的算法，支持多种条件同时筛选
 """
 import re
 import xlwt
@@ -22,16 +23,21 @@ from random import choice
 from time import sleep
 
 
+# 单例装饰器
+def singleton(cls, **kw):
+    instances = {}
+
+    def _singleton(*args):
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+
+    return _singleton
+
+
 class Config:
     """所需的常量及设置"""
     URL_ROOT = r'http://km.1024ky.trade/pw'
-    KEY_WORDS = [
-        '宮下華奈',
-    ]
-    HISTORY_ = [
-        'blacked', 'heyzo','Kristen Lee','Eva Lovia','Moka Mora','Haley Reed',
-        'Cadence Lux', 'Anya Olsen','Stella Cox','Lyra Law','sweet cat','Lucy Heart',
-    ]
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
         'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
@@ -56,10 +62,44 @@ class Config:
     }
 
 
-class Condit:
-    AND = ''
-    OR = ''
-    NOT = ''
+@singleton
+class Conditions:
+    """设置过滤关键词的条件
+    每一项条件以空格分开
+    """
+    __NOT = 'lust'
+    __OR = 'kendra'
+    __AND = ''
+    __HISTORY_ = [
+        'blacked', 'colette', 'heyzo', 'Kristen Lee', 'Eva Lovia', 'Moka Mora', 'Haley Reed',
+        'Cadence Lux', 'Anya Olsen', 'Stella Cox', 'Lyra Law', 'sweet cat', 'Lucy Heart',
+        'Tiffany Watson', 'Lana Rhoades'
+    ]
+
+    @property
+    def AND(self):
+        if self.__AND:
+            return self.__AND.strip().lower().split(' ')
+
+    @property
+    def OR(self):
+        if self.__OR:
+            return self.__OR.strip().lower().split(' ')
+
+    @property
+    def NOT(self):
+        if self.__NOT:
+            return self.__NOT.strip().lower().split(' ')
+
+    def __str__(self):
+        s = ''
+        if self.__NOT:
+            s += '排除' + self.__NOT
+        if self.__OR:
+            s += '任意' + self.__OR
+        if self.__AND:
+            s += '同时满足' + self.__AND
+        return s
 
 
 class TaskTeam:
@@ -140,10 +180,12 @@ class Page2Post(TaskTeam, Config):
 
 class Post2Download(TaskTeam, Config):
     """"""
+    re_fen_ci = re.compile(r'[- .?？;；,，。_]+')
 
     def __init__(self, query, showall=True):
         """query从Page2Post的队列中取"""
         super(Post2Download, self).__init__()
+        self.__filter = Conditions()  # 实例化要筛选的关键字对象
         # 是否每一步都要打印出来
         self.show_all = showall
         # 拼接帖子链接
@@ -172,7 +214,7 @@ class Post2Download(TaskTeam, Config):
         # 定位到主体div
         the_div = soup.find('div', attrs={'class': "tpc_content", 'id': "read_tpc"})
         for sub_str_elem in the_div.strings:
-            if self.washing(sub_str_elem, *self.KEY_WORDS):  # 选择的策略都在washing里
+            if self.washing(sub_str_elem):  # 选择的策略都在washing里
                 for sibling in sub_str_elem.next_siblings:
                     if sibling.name == 'a' and sibling['href'] == sibling.string:
                         if sibling.string not in self.tasks:
@@ -195,32 +237,31 @@ class Post2Download(TaskTeam, Config):
         cleaned = reg.sub('-', txt)
         return cleaned
 
-    @staticmethod
-    def washing(sands, *golds):
-        """
-        从sands中检查gold是否存在,强制转换sands为字符串，不区分大小写。
-        :param sands:expecting 字符串
-        :param golds:目标
-        :return:gold只要出现任何一个，返回True，否则返回False
-        """
-        for g in golds:
-            if str(g).lower() in sands.lower():
-                return True
-        return False
-
-    @staticmethod
-    def conditions(sand=''):
+    def washing(self, sand=''):
         """washing的替换"""
-        sand = sand.lower()
-        if Condit.NOT in sand:
-            return False
-        else:
-            for o in Condit.OR:
-                if o in sand:
-                    return True
-                else:
+        sand = self.re_fen_ci.split(sand.lower())  # sand在这里已被分词，成为列表
+        # 首先过滤NOT
+        if self.__filter.NOT:  # 非None
+            for n in self.__filter.NOT:
+                if n in sand:
+                    # print(1)
                     return False
+        # 其次过滤OR
+        if self.__filter.OR:
+            for o in self.__filter.OR:
+                if o in sand:
+                    # print(2)
+                    return True
+        # 最后过滤AND
+        if self.__filter.AND:
+            for a in self.__filter.AND:
+                if a not in sand:
+                    # print(3)
+                    return False
+            # print(4)
             return True
+        # 当没有设置任何条件时
+        return False
 
 
 class Start:
@@ -236,6 +277,9 @@ class Start:
         for i in range(int(num_to_thread)):
             self.thrds.append(threading.Thread(target=self.unit, args=(showall,)))
         self.do()
+        print('\n扫描完成！正在写入Excel文件...')
+        self.to_xls(self.to_xls_data)
+        print('Excel文件写入成功.')
 
     def do(self):
         if self.thrds:
@@ -267,16 +311,14 @@ class Start:
         for r in range(data.__len__()):  # 行
             for c in range(2):  # 列
                 worksheet.write(r, c, data[r][c])
-        workbook.save('/Users/aug/Desktop/essence-{}.xls'.format('-'.join(Config.KEY_WORDS)))
+        workbook.save('/Users/aug/Desktop/essence-{}.xls'.format(str(Conditions())))
 
     def __del__(self):
-        print('\n扫描完成！正在写入Excel文件...')
-        self.to_xls(self.to_xls_data)
-        print('Excel文件写入成功.')
+        """"""
 
 
 ###############################
-Start(1, 20, showall=False)  #
+Start(1, showall=False)  #
 ###############################
 
 
