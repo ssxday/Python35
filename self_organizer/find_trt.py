@@ -67,29 +67,35 @@ class Conditions:
     """设置过滤关键词的条件
     每一项条件以空格分开
     """
-    __NOT = 'lust'
-    __OR = 'kendra'
-    __AND = ''
     __HISTORY_ = [
         'blacked', 'colette', 'heyzo', 'Kristen Lee', 'Eva Lovia', 'Moka Mora', 'Haley Reed',
         'Cadence Lux', 'Anya Olsen', 'Stella Cox', 'Lyra Law', 'sweet cat', 'Lucy Heart',
         'Tiffany Watson', 'Lana Rhoades'
     ]
 
-    @property
-    def AND(self):
-        if self.__AND:
-            return self.__AND.strip().lower().split(' ')
+    def __init__(self, v='', o='', a=''):
+        self.__NOT = v  # veto
+        self.__OR = o  # any
+        self.__AND = a  # all
 
     @property
-    def OR(self):
+    def veto(self):
+        if self.__NOT:
+            return self.__NOT.strip().lower().split(' ')
+
+    @veto.setter
+    def veto(self, v):
+        self.__NOT = v
+
+    @property
+    def any(self):
         if self.__OR:
             return self.__OR.strip().lower().split(' ')
 
     @property
-    def NOT(self):
-        if self.__NOT:
-            return self.__NOT.strip().lower().split(' ')
+    def all(self):
+        if self.__AND:
+            return self.__AND.strip().lower().split(' ')
 
     def __str__(self):
         s = ''
@@ -180,7 +186,7 @@ class Page2Post(TaskTeam, Config):
 
 class Post2Download(TaskTeam, Config):
     """"""
-    re_fen_ci = re.compile(r'[- .?？;；,，。_]+')
+    re_fen_ci = re.compile(r'[- .?？！!;；,，。_/\\()\[\]\t\xa0]+')
 
     def __init__(self, query, showall=True):
         """query从Page2Post的队列中取"""
@@ -238,24 +244,25 @@ class Post2Download(TaskTeam, Config):
         return cleaned
 
     def washing(self, sand=''):
-        """washing的替换"""
-        sand = self.re_fen_ci.split(sand.lower())  # sand在这里已被分词，成为列表
+        # sand在这里被分词，成为列表
+        sands = self.re_fen_ci.split(sand.lower())
+        # print(sands)
         # 首先过滤NOT
-        if self.__filter.NOT:  # 非None
-            for n in self.__filter.NOT:
-                if n in sand:
+        if self.__filter.veto:  # 非None
+            for n in self.__filter.veto:
+                if n in sands:
                     # print(1)
                     return False
         # 其次过滤OR
-        if self.__filter.OR:
-            for o in self.__filter.OR:
-                if o in sand:
+        if self.__filter.any:
+            for o in self.__filter.any:
+                if o in sands:
                     # print(2)
                     return True
         # 最后过滤AND
-        if self.__filter.AND:
-            for a in self.__filter.AND:
-                if a not in sand:
+        if self.__filter.all:
+            for a in self.__filter.all:
+                if a not in sands:
                     # print(3)
                     return False
             # print(4)
@@ -295,7 +302,7 @@ class Start:
             try:
                 # 完成一个帖子的检查后，要把收集到的数据通过调用自身的方法传递出来
                 post2download = Post2Download(query, showall)  # 成功
-            except:
+            except ConnectionResetError:  # 可能漏洞
                 print('something wrong happened @unit()')
                 self.page2post.add_task(query)  # 把做错的任务再放回去
                 sleep(2)
@@ -317,9 +324,11 @@ class Start:
         """"""
 
 
-###############################
-Start(1, showall=False)  #
-###############################
+###########################################
+if __name__ == '__main__':
+    Conditions('', 'blacked')
+    Start(1, 5, showall=False)
+###########################################
 
 
 # 以下为试验区
