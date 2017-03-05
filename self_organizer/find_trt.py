@@ -5,13 +5,23 @@ Copyright statement and purpose...
 -----------------------------------------------------
 File Name:
 Author:
-Version:2.2
-Description:分三个步骤
+Version:2.3
+Description:优化了过滤数据的算法，支持多种与或非多种条件同时筛选
+-使用方法：
+step1：set your rules by Conditions(v,o,a)
+    v is a string containing words that should never appear in final result.
+    o is a string containing some words, as long as which shows, the line will be chosen.
+    a is a string containing words, all of which have to be in the line, so that the line will be chosen.
+step2: start the scanner by Start(frompage,topage,showall)
+
+-设计思路：
 1、page -> post
 2、post -> download 加入多线程
 3、download -> torrent暂时存放在文件中(暂未开通)
 
-优化了过滤数据的算法，支持多种条件同时筛选
+- 分词算法更新：
+把英文单词与其他语言分开处理：英文单词以单词列表存在，而其他语言仍然以字符串存在
+这样在匹配关键词时，相连的中英文混杂字符串清晰的被分开
 """
 import re
 import xlwt
@@ -37,7 +47,7 @@ def singleton(cls, **kw):
 
 class Config:
     """所需的常量及设置"""
-    URL_ROOT = r'http://km.1024ky.trade/pw'
+    URL_ROOT = r'http://t3.9laik.click/pw'
     USER_AGENTS = [
         'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
         'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
@@ -74,38 +84,52 @@ class Conditions:
     ]
 
     def __init__(self, v='', o='', a=''):
-        self.__NOT = v  # veto
-        self.__OR = o  # any
-        self.__AND = a  # all
+        self.__veto = v  # veto
+        self.__any = o  # any
+        self.__all = a  # all
 
     @property
     def veto(self):
-        if self.__NOT:
-            return self.__NOT.strip().lower().split(' ')
+        if self.__veto:
+            return self.__veto.strip().lower().split(' ')
 
     @veto.setter
     def veto(self, v):
-        self.__NOT = v
+        self.__veto = v
 
     @property
     def any(self):
-        if self.__OR:
-            return self.__OR.strip().lower().split(' ')
+        if self.__any:
+            return self.__any.strip().lower().split(' ')
+
+    @any.setter
+    def any(self, o):
+        self.__any = o
 
     @property
     def all(self):
-        if self.__AND:
-            return self.__AND.strip().lower().split(' ')
+        if self.__all:
+            return self.__all.strip().lower().split(' ')
+
+    @all.setter
+    def all(self, a):
+        self.__all = a
 
     def __str__(self):
         s = ''
-        if self.__NOT:
-            s += '排除' + self.__NOT
-        if self.__OR:
-            s += '任意' + self.__OR
-        if self.__AND:
-            s += '同时满足' + self.__AND
+        if self.__veto:
+            s += '排除' + self.__veto
+        if self.__any:
+            s += '任意' + self.__any
+        if self.__all:
+            s += '同时满足' + self.__all
         return s
+
+    def __call__(self):
+        """调试用，调用实例看详情"""
+        print('NOT', self.veto)
+        print('OR ', self.any)
+        print('AND', self.all)
 
 
 class TaskTeam:
@@ -186,7 +210,8 @@ class Page2Post(TaskTeam, Config):
 
 class Post2Download(TaskTeam, Config):
     """"""
-    re_fen_ci = re.compile(r'[- .?？！!;；,，。_/\\()\[\]\t\xa0]+')
+    re_punc = re.compile(r'[- .?？！!;；:：,，。_/\\()\[\]【】\s\xa0]+')
+    re_alphabet = re.compile(r"[a-z']+")  # 目标处理前已全部小写
 
     def __init__(self, query, showall=True):
         """query从Page2Post的队列中取"""
@@ -245,30 +270,40 @@ class Post2Download(TaskTeam, Config):
 
     def washing(self, sand=''):
         # sand在这里被分词，成为列表
-        sands = self.re_fen_ci.split(sand.lower())
+        eng, other = self.segments(sand)
         # print(sands)
         # 首先过滤NOT
         if self.__filter.veto:  # 非None
             for n in self.__filter.veto:
-                if n in sands:
+                if n in eng or n in other:
                     # print(1)
                     return False
         # 其次过滤OR
         if self.__filter.any:
             for o in self.__filter.any:
-                if o in sands:
+                if o in eng or o in other:
                     # print(2)
                     return True
         # 最后过滤AND
         if self.__filter.all:
             for a in self.__filter.all:
-                if a not in sands:
+                if not (a in eng or a in other):
                     # print(3)
                     return False
             # print(4)
             return True
         # 当没有设置任何条件时
         return False
+
+    def segments(self, txt=''):
+        """
+        :return 英文以单词列表的形式，其他语言以字符串形式，构成元组
+        """
+        txt = txt.lower()  # 全部小写
+        eng = self.re_alphabet.findall(txt)  # 英文分词完成
+        without_eng = self.re_alphabet.sub('', txt)  # 除了英文剩余的语言和标点
+        leftover = self.re_punc.sub('', without_eng)  # 再去掉标点符号
+        return eng, leftover
 
 
 class Start:
