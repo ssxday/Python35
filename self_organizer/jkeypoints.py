@@ -35,7 +35,7 @@ class SymbolSwitch:
     ^n\d{5}$                 TH格式
     """
     re_letters = re.compile(r'^\d?[a-z]{1,5}', re.I)
-    re_nums = re.compile(r'(\d{3,6})-?(\d{0,3})')
+    re_nums = re.compile(r'(\d{3,6})[-_]?(\d{0,3})')
 
     def __init__(self, txt=''):
         letters = self.re_letters.search(txt)
