@@ -10,10 +10,8 @@ Description:
 将excel文件内容导入数据库
 """
 import xlrd
-from sqlalchemy import create_engine, String, Integer, Column
+from lab.dborm import *
 
-
-# from sqlalchemy.orm
 
 # 选择xls文件并读取到一个对象里去
 class XRead:
@@ -33,7 +31,7 @@ class XRead:
                     return self.__sheet.cell_value(row, col)
         return self.__sheet.name
 
-    def first_solid_row(self):
+    def first_solid_row_index(self):
         """找第一行满列的行索引"""
         for row_no in range(self.__sheet.nrows):
             types = [self.__filter(i) for i in self.__sheet.row_types(row_no)]
@@ -44,7 +42,7 @@ class XRead:
     def rread(self):
         """"""
         rows = self.__sheet.get_rows()
-        start = self.first_solid_row()  # 第一个满行的索引号
+        start = self.first_solid_row_index()  # 第一个满行的索引号
         if self.__skip:  # 跳过第一满行
             start += 1
         else:  # 不跳过第一满行
@@ -54,7 +52,8 @@ class XRead:
             rows.__next__()
             start -= 1
         for row in rows:
-            yield [unit.value for unit in row]
+            # yield [unit.value for unit in row]
+            yield RowData(row)()
 
     @staticmethod
     def __filter(i):
@@ -63,19 +62,26 @@ class XRead:
         return i
 
 
-xls = XRead('/users/aug/desktop/11.xls')
-print(xls.table_title)
-print('从第{}行索引开始'.format(xls.first_solid_row()))
-rs = xls.rread()
-# fir = rs.__next__()
-# print(fir)
-# for f in fir:
-#     print(f.value)
-# for r in rs:
-#     gai = [i.value for i in r]
-#     print(gai)
-print(rs.__next__())
-for r in rs:
-    print(r)
+class RowData:
+    Branch = {'应届毕业生': 1, '在职人才': 2, '归国留学人员': 3}
+    Degree = {'本科': 1, '硕士研究生': 2, '博士研究生': 3}
+    Stage = {'租房补贴首发': 0}
 
-"sis578 18718175437"
+    def __init__(self, lyst):
+        self.__l = [unit.value for unit in lyst]
+        self.__l[0] = int(self.__l[0])
+        self.__l[4] = self.Branch.get(self.__l[4])
+        self.__l[5] = self.Degree.get(self.__l[5])
+        self.__l[6] = self.Stage.get(self.__l[6])
+
+    def __call__(self, *args, **kwargs):
+        return self.__l
+
+
+if __name__ == '__main__':
+    xls = XRead('/users/aug/desktop/11.xls')
+    print(xls.table_title)
+    print('从第{}行索引开始'.format(xls.first_solid_row_index()))
+    rs = xls.rread()
+    for r in rs:
+        Candidate(*r).insert()
