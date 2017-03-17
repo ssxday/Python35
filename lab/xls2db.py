@@ -69,7 +69,6 @@ class RowData:
 
     def __init__(self, lyst):
         self.__l = [unit.value for unit in lyst]
-        self.__l[0] = int(self.__l[0])
         self.__l[4] = self.Branch.get(self.__l[4])
         self.__l[5] = self.Degree.get(self.__l[5])
         self.__l[6] = self.Stage.get(self.__l[6])
@@ -78,10 +77,14 @@ class RowData:
         return self.__l
 
 
-if __name__ == '__main__':
-    xls = XRead('/users/aug/desktop/11.xls')
-    print(xls.table_title)
-    print('从第{}行索引开始'.format(xls.first_solid_row_index()))
+def conveyor(filepath):
+    xls = XRead(filepath, 2)
+    # print(xls.table_title)
+    # print('从第{}行索引开始'.format(xls.first_solid_row_index()))
     rs = xls.rread()
     for r in rs:
         Candidate(*r).insert()
+
+
+if __name__ == '__main__':
+    conveyor('/users/aug/desktop/11.xls')
