@@ -10,7 +10,7 @@ Description:
 将excel文件内容导入数据库
 """
 import xlrd
-from lab.dborm import *
+from lab.dborm import Candidate
 
 
 # 选择xls文件并读取到一个对象里去
@@ -52,8 +52,7 @@ class XRead:
             rows.__next__()
             start -= 1
         for row in rows:
-            # yield [unit.value for unit in row]
-            yield RowData(row)()
+            yield list(RowData(row))
 
     @staticmethod
     def __filter(i):
@@ -63,6 +62,7 @@ class XRead:
 
 
 class RowData:
+    """构造成一个迭代器，使得对象实例可以被list()一步转化为列表"""
     Branch = {'应届毕业生': 1, '在职人才': 2, '归国留学人员': 3}
     Degree = {'本科': 1, '硕士研究生': 2, '博士研究生': 3}
     Stage = {'租房补贴首发': 0}
@@ -73,12 +73,18 @@ class RowData:
         self.__l[5] = self.Degree.get(self.__l[5])
         self.__l[6] = self.Stage.get(self.__l[6])
 
-    def __call__(self, *args, **kwargs):
-        return self.__l
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.__l:
+            return self.__l.pop(0)
+        else:
+            raise StopIteration
 
 
-def conveyor(filepath):
-    xls = XRead(filepath, 2)
+def conveyor(filepath, sheet_no=1, skip1st=True):
+    xls = XRead(filepath, sheet_no, skip1st)
     # print(xls.table_title)
     # print('从第{}行索引开始'.format(xls.first_solid_row_index()))
     rs = xls.rread()
@@ -87,4 +93,5 @@ def conveyor(filepath):
 
 
 if __name__ == '__main__':
-    conveyor('/users/aug/desktop/11.xls')
+    """"""
+    conveyor('/users/aug/desktop/11.xls', 2)
