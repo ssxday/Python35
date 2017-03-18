@@ -3,11 +3,17 @@
 Licensed Materials - Property of SSX
 Copyright statement and purpose...
 -----------------------------------------------------
-File Name:
+File Name:xls2db.py
 Author:
 Version:
 Description:
-将excel文件内容导入数据库
+- 将excel文件内容导入数据库
+- 本模块与dborm模块紧密依赖
+- 在处理xlsx文件时，formatting_info须设为False，否则报错
+- 使用方法：
+    1、构造dborm.py中的数据库模型
+    2、构造本模块中的RowData对象
+    3、conveyor(filepath, sheet_no, skip1st)
 """
 import xlrd
 from lab.dborm import Candidate
@@ -15,8 +21,8 @@ from lab.dborm import Candidate
 
 # 选择xls文件并读取到一个对象里去
 class XRead:
-    def __init__(self, file, sheet_no=1, skip1st=True):
-        xfile = xlrd.open_workbook(file, formatting_info=True)
+    def __init__(self, file, sheet_no=1, skip1st=True, formatting_info=True):
+        xfile = xlrd.open_workbook(file, formatting_info)
         self.__sheet = xfile.sheet_by_index(sheet_no - 1)
         self.__skip = skip1st  # 是否跳过假设的表头(第一满行)
 
@@ -31,7 +37,7 @@ class XRead:
                     return self.__sheet.cell_value(row, col)
         return self.__sheet.name
 
-    def first_solid_row_index(self):
+    def __first_solid_row_index(self):
         """找第一行满列的行索引"""
         for row_no in range(self.__sheet.nrows):
             types = [self.__filter(i) for i in self.__sheet.row_types(row_no)]
@@ -42,7 +48,7 @@ class XRead:
     def rread(self):
         """"""
         rows = self.__sheet.get_rows()
-        start = self.first_solid_row_index()  # 第一个满行的索引号
+        start = self.__first_solid_row_index()  # 第一个满行的索引号
         if self.__skip:  # 跳过第一满行
             start += 1
         else:  # 不跳过第一满行
@@ -62,7 +68,9 @@ class XRead:
 
 
 class RowData:
-    """构造成一个迭代器，使得对象实例可以被list()一步转化为列表"""
+    """构造成一个迭代器，使得对象实例可以被list()一步转化为列表
+    对于不同的xls表格，需要预先定义不同的行数据
+    """
     Branch = {'应届毕业生': 1, '在职人才': 2, '归国留学人员': 3}
     Degree = {'本科': 1, '硕士研究生': 2, '博士研究生': 3}
     Stage = {'租房补贴首发': 0}
