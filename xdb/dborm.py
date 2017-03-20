@@ -26,10 +26,15 @@ class OpMth:
         try:
             s.add(self)
             s.commit()
-            return self.__dict__.__len__()
+            return 'OK'
         except Exception as e:
             s.rollback()
             return e
+
+    @classmethod
+    def readrow(cls):
+        s = Sess()
+        return (row for row in s.query(cls).all())
 
 
 # 构造ORM
@@ -42,6 +47,7 @@ class Candidate(Base, OpMth):
     branch = Column(String)
     degree = Column(String)
     stage = Column(String)
+    order_map = {0: 'cid', 1: 'name', 2: 'idnum', 3: 'age', 4: 'branch', 5: 'degree', 6: 'stage'}
 
     def __init__(self, cid, name, idnum, age, branch, degree, stage):
         self.cid = cid
@@ -53,8 +59,16 @@ class Candidate(Base, OpMth):
         self.stage = stage
 
     def __repr__(self):
-        desc = '<Candidate {}{}{}>'.format(self.cid, self.name, self.age)
+        desc = '<Candidate {}:{}:{}>'.format(self.cid, self.name, self.age)
         return desc
+
+    def get(self, key, default=None):
+        if isinstance(key, str):
+            return self.__dict__.get(key, default)
+        elif isinstance(key, int):
+            return self.__dict__.get(self.order_map.get(key), default)
+        else:
+            return default
 
 
 class Degree(Base, OpMth):

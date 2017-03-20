@@ -16,7 +16,7 @@ Description:
     3、conveyor(filepath, sheet_no, skip1st)
 """
 import xlrd
-from lab.dborm import Candidate
+from xdb.dborm import Candidate
 
 
 # 选择xls文件并读取到一个对象里去
