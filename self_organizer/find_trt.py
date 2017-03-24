@@ -4,9 +4,9 @@ Licensed Materials - Property of SSX
 Copyright statement and purpose...
 -----------------------------------------------------
 File Name:
-Author:
-Version:2.3
-Description:优化了过滤数据的算法，支持多种与或非多种条件同时筛选
+Author:find_trt.py
+Version:3.0
+Description:
 -使用方法：
 step1：set your rules by Conditions(v,o,a)
     v is a string containing words that should never appear in final result.
@@ -15,11 +15,13 @@ step1：set your rules by Conditions(v,o,a)
 step2: start the scanner by Start(frompage,topage,showall)
 
 -设计思路：
-1、page -> post
+1、page -> post post可进行Redis缓存
 2、post -> download 加入多线程
 3、download -> torrent暂时存放在文件中(暂未开通)
 
-- 分词算法更新：
+- 3.0 重大更新：加入了Redis缓存
+
+- 分词算法更新：优化了过滤数据的算法，支持多种与或非多种条件同时筛选
 把英文单词与其他语言分开处理：英文单词以单词列表存在，而其他语言仍然以字符串存在
 这样在匹配关键词时，相连的中英文混杂字符串清晰的被分开
 """
@@ -27,19 +29,21 @@ import re
 import xlwt
 import threading
 import requests
+import redis
 from os.path import join
 from bs4 import BeautifulSoup
 from random import choice
 from time import sleep
+from common_use import RedisConf
 
 
 # 单例装饰器
-def singleton(cls, **kw):
+def singleton(cls):
     instances = {}
 
-    def _singleton(*args):
+    def _singleton(*args, **kwargs):
         if cls not in instances:
-            instances[cls] = cls(*args, **kw)
+            instances[cls] = cls(*args, **kwargs)
         return instances[cls]
 
     return _singleton
@@ -80,7 +84,7 @@ class Conditions:
     __HISTORY_ = [
         'blacked', 'colette', 'heyzo', 'Kristen Lee', 'Eva Lovia', 'Moka Mora', 'Haley Reed',
         'Cadence Lux', 'Anya Olsen', 'Stella Cox', 'Lyra Law', 'sweet cat', 'Lucy Heart',
-        'Tiffany Watson', 'Lana Rhoades'
+        'Tiffany Watson', 'Lana Rhoades', 'Marina Woods'
     ]
 
     def __init__(self, v='', o='', a=''):
@@ -151,6 +155,41 @@ class TaskTeam:
         return self.tasks
 
 
+class RCache:
+    """Redis缓存"""
+
+    def __init__(self, mark='', expire=1800):
+        self.__mark = mark
+        self.__expire = expire
+        self.__redis = redis.StrictRedis(db=0, password=RedisConf.AUTH)
+
+    def in_service(self):
+        try:
+            try:
+                return self.__redis.ping()
+            except Exception:
+                raise SomethingWrong('Redis Not In Service')
+        except SomethingWrong:
+            return False
+
+    def exists(self):
+        return self.__redis.exists(self.__mark)
+
+    def get(self):
+        return [i.decode() for i in self.__redis.lrange(self.__mark, 0, len(self))]
+
+    def add(self, *items):
+        self.__redis.rpush(self.__mark, *items)
+        self.__redis.expire(self.__mark, self.__expire)  # 缓存有效期
+
+    def clear(self):
+        """清除缓存"""
+        self.__redis.delete(self.__mark)
+
+    def __len__(self):
+        return self.__redis.llen(self.__mark)
+
+
 class SomethingWrong(Exception):
     def __init__(self, note='something wrong occurred'):
         self.note = note
@@ -164,7 +203,22 @@ class Page2Post(TaskTeam, Config):
 
     def __init__(self, from_page=5, to_page=None):
         super(Page2Post, self).__init__()
-        self.engine(from_page, to_page)
+        mark = '{}{}'.format(from_page, to_page)
+        self.__rcache = RCache(mark)
+        if self.__rcache.in_service():
+            # redis开启
+            # 查找有无对应的mark数据
+            if self.__rcache.exists():  # 有
+                # 调用数据
+                print('向redis获取数据')
+                self.tasks.extend(self.__rcache.get())
+            else:  # 2、没有
+                # 启动engine，同时往redis里添加数据
+                print('缓存中没有相应数据，将启动engine')
+                self.engine(from_page, to_page)
+        else:  # redis服务没有开启
+            print('redis服务器没有开启')
+            self.engine(from_page, to_page)
 
     def engine(self, from_page, to_page):
         """"""
@@ -204,6 +258,9 @@ class Page2Post(TaskTeam, Config):
         if post_tags:
             post_suffixes = [tag.get('href', '') for tag in post_tags]
             self.tasks.extend(post_suffixes)
+            if self.__rcache.in_service():
+                # redis开着，顺便放进redis去缓存
+                self.__rcache.add(*post_suffixes)
         else:
             raise SomethingWrong('第{}页没有符合条件的帖子@Page2Post'.format(page_no))
 
@@ -314,14 +371,17 @@ class Start:
         self.to_xls_data = []  # 数据为items()格式
         # 实例化同时把指定页码的所有帖子链接全部存进自身队列
         self.page2post = Page2Post(from_page, to_page)
-        num_to_thread = input('共有{}个帖子需要扫描,需要开启几个线程：'.format(self.page2post().__len__()))
-        # 初始化多线程
-        for i in range(int(num_to_thread)):
-            self.thrds.append(threading.Thread(target=self.unit, args=(showall,)))
-        self.do()
-        print('\n扫描完成！正在写入Excel文件...')
-        self.to_xls(self.to_xls_data)
-        print('Excel文件写入成功.')
+        if self.page2post():  # 对象内部的队列中有内容
+            num_to_thread = input('共有{}个帖子需要扫描,需要开启几个线程：'.format(self.page2post().__len__()))
+            # 初始化多线程
+            for i in range(int(num_to_thread)):
+                self.thrds.append(threading.Thread(target=self.unit, args=(showall,)))
+            self.do()
+            print('\n扫描完成！正在写入Excel文件...')
+            self.to_xls(self.to_xls_data)
+            print('Excel文件写入成功.')
+        else:  # 对象内部的队列中没有内容
+            print(' 未找到可以扫描的帖子，程序结束 '.center(50, '='))
 
     def do(self):
         if self.thrds:
@@ -361,27 +421,6 @@ class Start:
 
 ###########################################
 if __name__ == '__main__':
-    Conditions('', 'blacked')
-    Start(1, 5, showall=False)
+    print(Conditions(o='abp snis ipz'))
+    Start(1, showall=False)
 ###########################################
-
-
-# 以下为试验区
-class Downloader(Config):
-    def download(self):
-        """进入download页面拿到目标地址然后下载资源到本地"""
-        url = 'http://www2.j32048downhostup9s.info/freeone/down.php'
-        data = {
-            'type': 'torrent',
-            'name': 'OJGSOWr',
-            'id': 'OJGSOWr'
-        }
-        resp = requests.post(url, data=data, headers=self.HEADERS)
-        print(1, resp.status_code)
-        content = resp.content
-        print(2, resp.status_code)
-        with open('/users/aug/desktop/testhaha.torrent', 'wb') as f:
-            f.write(content)
-
-# d = Downloader()  # 并不成功
-# d.download()
