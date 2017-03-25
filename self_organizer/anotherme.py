@@ -7,9 +7,10 @@ File Name:
 Author:
 Version:
 Description:
-
+- 既可查单个目录内部的重复，又可以查多个目录的两两组合中的重复
 """
 from common_use import Constant
+from itertools import combinations
 import os
 import re
 
@@ -20,7 +21,7 @@ class Gothrough:
 
     def __init__(self, name, dir_path):
         self.pool = dict()
-        self.name = name
+        self.name = 'No.{}'.format(name)  # 转换字符串
         self.engine(dir_path)
 
     def engine(self, root_path):
@@ -42,6 +43,10 @@ class Gothrough:
         else:
             self.pool[key] = lyst
 
+    def not_only_one(self):
+        keys = [k for k, v in self.pool.items() if v.__len__() > 1]
+        return {key: self.pool.get(key) for key in keys}
+
     @classmethod
     def essence(cls, txt):
         mark = cls.re_mark.search(txt)
@@ -54,29 +59,34 @@ class Gothrough:
 
 
 class Compare:
-    def __init__(self, compares):
-        (one1, one2), (two1, two2) = compares.items()
-        self.item1 = Gothrough(one1, one2)
-        self.item2 = Gothrough(two1, two2)
+    def __init__(self, *dir_to_check):
+        assert 1 <= dir_to_check.__len__() <= 2
+        self.__cmpool = []  # 初始化对比池
+        for no in range(dir_to_check.__len__()):
+            self.__cmpool.append(Gothrough(no, dir_to_check[no]))
+        self.cbns = combinations(self.__cmpool, 2)  # 对比池的组合迭代器
 
-    def common(self):
-        cross = set(self.item1.pool.keys()) & set(self.item2.pool.keys())  # 交集
-        if cross:
-            for symbol in cross:
-                one = self.item1.get(symbol)
-                nameone = self.item1.name
-                two = self.item2.get(symbol)
-                nametwo = self.item2.name
-                echo = '{symbol}:\n\t{name1}:{one}\n\t{name2}:{two}'.format(symbol=symbol, name1=nameone, one=one,
-                                                                            name2=nametwo, two=two)
-                print(echo)
-        else:
-            print('没有重复内容')
+    def inner_repeat(self):
+        """单个对象内部的重复内容"""
+        for k, v in self.__cmpool[0].not_only_one().items():
+            print('{}:{}'.format(k, v))
+
+    def couple_cross(self):
+        """两两组合之中的重复内容"""
+        # 遍历对比池中对象的组合
+        for cbn in self.cbns:
+            p, q = cbn
+            cross = set(p.pool.keys()) & set(q.pool.keys())  # 交集
+            if cross:
+                for symbol in cross:
+                    one = self.__cmpool[0].get(symbol)
+                    nameone = self.__cmpool[0].name
+                    two = self.__cmpool[1].get(symbol)
+                    nametwo = self.__cmpool[1].name
+                    echo = '{symbol}:\n\t{name1}:{one}\n\t{name2}:{two}'.format(symbol=symbol, name1=nameone, one=one,
+                                                                                name2=nametwo, two=two)
+                    print(echo)
 
 
-cmp_data = {
-    'No.1': Constant.SIMU,
-    'No.2': Constant.LAKESSD
-}
-cmpr = Compare(cmp_data)
-cmpr.common()
+cmpr = Compare(Constant.LAKESSD)
+cmpr.inner_repeat()
