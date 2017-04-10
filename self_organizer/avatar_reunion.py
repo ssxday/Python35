@@ -126,16 +126,31 @@ class Fetch:
         self.keyword, self.savepath = task
         desc = Describer(self.keyword).info
         self.target = desc.get('image')  # 目标资源的URL
-        self.title = desc.get('title')  # 下到本地的文件名(不含扩展名)
+        self.title = self.truncate(desc.get('title'))  # 下到本地的文件名(不含扩展名)
         self.retrieve()
 
     def retrieve(self):  # 等同于recover()
         """使用requests.get()把目标url资源下载到指定位置的方法"""
         dst = self.savepath + os.sep + self.title + os.path.splitext(self.target)[1]
-        telefile = requests.get(self.target)
+        telefile = requests.get(self.target, headers=Headers.HEADERS)
         with open(dst, 'wb') as localfile:
             localfile.write(telefile.content)  # 写入文件，完成！
         telefile.close()
+
+    @staticmethod
+    def truncate(txt='', max_length=50, abbreviation='...'):
+        if max_length <= 5:
+            return txt
+        if len(txt) <= max_length:
+            return txt
+        else:
+            cut_length = max_length // 3
+            head = txt[:cut_length]
+            tail = txt[-cut_length:]
+            left_length_for_body = max_length - 2 * cut_length - len(abbreviation)
+            body = txt[cut_length:cut_length + left_length_for_body]
+            truncated = '{}{}{}{}'.format(head, body, abbreviation, tail)
+            return truncated
 
     def __del__(self):
         """"""

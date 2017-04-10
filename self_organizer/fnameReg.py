@@ -146,6 +146,8 @@ def truncate(txt='', max_length=30, abbreviation='...'):
     """截取过长字符串至指定长度，保留前部和尾部一部分，中间适当调整
     如果字符串本身不到指定长度，则不做处理
     """
+    if max_length <= 5:
+        return txt
     if len(txt) <= max_length:
         return txt
     else:
@@ -154,7 +156,7 @@ def truncate(txt='', max_length=30, abbreviation='...'):
         tail = txt[-cut_length:]
         left_length_for_body = max_length - 2 * cut_length - len(abbreviation)
         body = txt[cut_length:cut_length + left_length_for_body]
-        truncated = head + body + abbreviation + tail
+        truncated = '{}{}{}{}'.format(head, body, abbreviation, tail)
         return truncated
 
 
@@ -202,5 +204,5 @@ def start(dir_to_reg, flag=True):
 
 #####################################
 if __name__ == '__main__':
-    start(Constant.TOSHIBA, True)
+    start(Constant.LAKESSD, True)
 #####################################

@@ -68,8 +68,11 @@ class Compare:
 
     def inner_repeat(self):
         """单个对象内部的重复内容"""
-        for k, v in self.__cmpool[0].not_only_one().items():
-            print('{}:{}'.format(k, v))
+        for key, values in self.__cmpool[0].not_only_one().items():
+            print('{}:'.format(key))
+            for v in values:
+                print('\t{}'.format(v))
+            print()
 
     def couple_cross(self):
         """两两组合之中的重复内容"""
@@ -88,5 +91,5 @@ class Compare:
                     print(echo)
 
 
-cmpr = Compare(Constant.LAKESSD)
+cmpr = Compare(Constant.SEAGATE)
 cmpr.inner_repeat()

@@ -14,7 +14,7 @@ import os
 from common_use import Constant
 
 
-class SimuGen:
+class Duplicate:
     FILLING = b"""p!$vx)o(&@|2sk#1t83>9dhn?*%^0wgfe;45gcm:"u7r/aq'<lzbi6y"""
     DST = r'/Users/AUG/Desktop/'
 
@@ -46,4 +46,4 @@ class SimuGen:
 
 
 if __name__ == '__main__':
-    SimuGen(Constant.THETWO)
+    Duplicate(Constant.THEONE)

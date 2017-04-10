@@ -138,7 +138,7 @@ class Fetch:
         self.hcc = hct.HTTPSConnection(self.HOST, 443)  # 连接服务器对象(HTTPS协议)
         self.hcc.request('GET', request)  # 请求数据
         with self.hcc.getresponse() as resp:
-            data = resp.read().decode()
+            data = resp.rread().decode()
             self.pickup(data)  # 把取回来的数据交给pickup()处理
         self.hcc.close()
 
@@ -175,7 +175,7 @@ class Fetch:
         req = uq.Request(self.target, headers=hdr)  # 设置详细的请求，重点是头信息
         with uq.urlopen(req) as telefile:
             with open(dst, 'wb') as localfile:
-                localfile.write(telefile.read())  # 写入文件，完成！
+                localfile.write(telefile.rread())  # 写入文件，完成！
 
     def retrieve(self):  # 等同于recover()
         """使用requests.get()把目标url资源下载到指定位置的方法"""

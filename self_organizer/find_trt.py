@@ -203,21 +203,21 @@ class Page2Post(TaskTeam, Config):
 
     def __init__(self, from_page=5, to_page=None):
         super(Page2Post, self).__init__()
-        mark = '{}{}'.format(from_page, to_page)
+        mark = '{}:{}'.format(from_page, to_page)
         self.__rcache = RCache(mark)
         if self.__rcache.in_service():
             # redis开启
             # 查找有无对应的mark数据
             if self.__rcache.exists():  # 有
                 # 调用数据
-                print('向redis获取数据')
+                print('从Redis缓存中获取数据')
                 self.tasks.extend(self.__rcache.get())
             else:  # 2、没有
                 # 启动engine，同时往redis里添加数据
                 print('缓存中没有相应数据，将启动engine')
                 self.engine(from_page, to_page)
         else:  # redis服务没有开启
-            print('redis服务器没有开启')
+            print('Redis缓存服务器没有开启')
             self.engine(from_page, to_page)
 
     def engine(self, from_page, to_page):
@@ -268,7 +268,7 @@ class Page2Post(TaskTeam, Config):
 class Post2Download(TaskTeam, Config):
     """"""
     re_punc = re.compile(r'[- .?？！!;；:：,，。_/\\()\[\]【】\s\xa0]+')
-    re_alphabet = re.compile(r"[a-z']+")  # 目标处理前已全部小写
+    re_alphabet = re.compile(r"[a-z']+", re.I)  # 目标处理前已全部小写
 
     def __init__(self, query, showall=True):
         """query从Page2Post的队列中取"""
@@ -354,7 +354,7 @@ class Post2Download(TaskTeam, Config):
 
     def segments(self, txt=''):
         """
-        :return 英文以单词列表的形式，其他语言以字符串形式，构成元组
+        :return 英文以单词列表的形式，其他语言以字符串形式，构成元组([list], 'str')
         """
         txt = txt.lower()  # 全部小写
         eng = self.re_alphabet.findall(txt)  # 英文分词完成
@@ -421,6 +421,6 @@ class Start:
 
 ###########################################
 if __name__ == '__main__':
-    print(Conditions(o='abp snis ipz'))
-    Start(1, showall=False)
+    print(Conditions(o='blacked', a='kendra sunderland'))
+    Start(1, 12, showall=False)
 ###########################################
